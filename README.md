@@ -4,7 +4,9 @@
 
 $ cd volumecarvao
 
-$ virtualenv -p python3 .env
+$ virtualenv -p python3 .env 
+  - install virtualenv:  
+    $ pip3 install virtualenv
 
 $ source .env/bin/activate
 
