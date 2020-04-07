@@ -1,6 +1,6 @@
 # Project Carvao
 
-## Segmentation and Volume
+## Set up project
 Proceed with the instalation of a python virtual environment:
 ```bash
 # Get into the project path
