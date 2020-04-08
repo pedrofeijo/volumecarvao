@@ -1,7 +1,10 @@
+#!/usr/bin/python3
+
 ############    LAPISCO / GPAR            ############
 ############    Developer: Pedro Feijó    ############
 ############    Segmentação               ############
 ############    Calcular Volume           ############
+
 import pptk
 import pandas as pd
 import numpy as np 
@@ -12,11 +15,19 @@ import alphashape
 import random
 from PIL import Image
 import os
-import glob 
+import glob
 
+# Get script file root name
+root = os.path.dirname(os.path.abspath(__file__)) + '/'
+
+folder = root+'selecao_teste' # path dos slices
+try:
+    os.mkdir(folder)
+except:
+    pass
 ##### Segmentar Nuvem de Pontos
 
-nuvem= "/home/feijo/Documentos/carvao_ufc/pontos_1574700886/pontos_1574700886.txt" 
+nuvem = root + 'pontos.txt'
 xyz= np.loadtxt(nuvem, delimiter= ' ')
 xyz= xyz[:,:3]
 
@@ -27,11 +38,11 @@ sel = v.get('selected')
 len(sel)
 xyz[sel,:]
 v_sel = pptk.viewer(xyz[sel,:])
-np.savetxt("selected.txt", xyz[sel,:]) #transposta dos dados
+np.savetxt("selected.txt", xyz[sel,:]) # Transposta dos dados
 
 
-#LER NUVEM DE PONTOS
-arquivo= "/home/feijo/Documentos/carvao_ufc/selected.txt" 
+# LER NUVEM DE PONTOS
+arquivo= root+"selected.txt" 
 dados_df= np.loadtxt(arquivo, delimiter= ' ')
 dados_df= dados_df[:,:3] # ajustar arquivo txt - (linha , coluna)
 dados=dados_df[dados_df[:,0].argsort()] #ordenar eixo x
@@ -44,7 +55,7 @@ intervalo= 1000 # se ficar menor não fecha o polígono
 for i in range(len(dados_x)//intervalo):
     points = [(y,z) for y,z in zip(dados_y[i*intervalo: (i+1)*intervalo],dados_z[i*intervalo: (i+1)*intervalo])]
 
-    #DEFININDO ALPHA
+    # DEFININDO ALPHA
     alpha_shape = alphashape.alphashape(points, 0.)
     # alpha_shape = alphashape.alphashape(points) # calculo do alpha automatico
         
@@ -61,25 +72,25 @@ for i in range(len(dados_x)//intervalo):
     plt.ylim([np.min(dados_z), np.max(dados_z)]) # limitando o espaço de plotar em z
     plt.axis("off") # sem eixos 
     
-    #Plotar arquivo .txt de cada slice
-    fig.savefig('/home/feijo/Documentos/carvao_ufc/selecao_teste/fig_{}.png'.format(i))
+    # Plotar arquivo .txt de cada slice
+    fig.savefig(root+'selecao_teste/fig_{}.png'.format(i))
     print(i) 
 
     points_slice = [(x,y,z) for x,y,z in zip(dados_x[i*intervalo: (i+1)*intervalo],dados_y[i*intervalo: (i+1)*intervalo],dados_z[i*intervalo: (i+1)*intervalo])]
-    np.savetxt('/home/feijo/Documentos/carvao_ufc/selecao_teste/points_fig_{}.txt'.format(i), points_slice, delimiter=' ') 
+    np.savetxt(root+'selecao_teste/points_fig_{}.txt'.format(i), points_slice, delimiter=' ') 
 
     plt.close()
 
 
-#identificar o numero de slices na path
-folder = '/home/feijo/Documentos/carvao_ufc/selecao_teste' # path dos slices
+# Identificar o numero de slices na path
+folder = root+'selecao_teste' # path dos slices
 filepaths = glob.glob(folder+ "/*.png", recursive= True)  
 print (len(filepaths)) # Número de arquivos na path
 
 total=0
 
 for i in range(len(filepaths)):
-    img = np.asarray(Image.open("/home/feijo/Documentos/carvao_ufc/selecao_teste/fig_{}.png".format(i)).convert('L'))
+    img = np.asarray(Image.open(root+"/selecao_teste/fig_{}.png".format(i)).convert('L'))
     img = 1 * (img < 255)
     m,n = img.shape
     total += img.sum() 
