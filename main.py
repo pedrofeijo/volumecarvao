@@ -7,8 +7,7 @@
 
 import pptk
 import pandas as pd
-import numpy as np 
-import matplotlib.pyplot as plt
+import numpy as np
 import sys
 from descartes import PolygonPatch
 import alphashape
@@ -16,6 +15,7 @@ import random
 from PIL import Image
 import os
 import glob
+import matplotlib.pyplot as plt
 
 # Get script file root name
 root = os.path.dirname(os.path.abspath(__file__)) + '/'
@@ -27,22 +27,40 @@ except:
     pass
 ##### Segmentar Nuvem de Pontos
 
-nuvem = root + 'pontos.txt'
-xyz= np.loadtxt(nuvem, delimiter= ' ')
+# nuvem = root + 'pontos.txt'
+nuvem = root + 'ensaio9teste15.txt'
+try:
+    xyz= np.loadtxt(nuvem, delimiter= ' ')
+except:
+    sys.exit('File ' + nuvem + ' does not exists!')
 xyz= xyz[:,:3]
 
-v = pptk.viewer(xyz)
+z = xyz[:,2]
+bxplt = plt.boxplot(z)
+M1 = bxplt['whiskers'][1]._y[0]
+M2 = bxplt['whiskers'][1]._y[1]
+m1 = bxplt['whiskers'][0]._y[0]
+m2 = bxplt['whiskers'][0]._y[1]
+# plt.show()
+v = pptk.viewer(xyz,z)
+v.color_map('jet',scale=[m1,M2])
 v.wait()
 
 sel = v.get('selected')
 len(sel)
-xyz[sel,:]
-v_sel = pptk.viewer(xyz[sel,:])
-np.savetxt("selected.txt", xyz[sel,:]) # Transposta dos dados
-
+selected = xyz[sel,:]
+z = selected[:,2]
+bxplt = plt.boxplot(z)
+M1 = bxplt['whiskers'][1]._y[0]
+M2 = bxplt['whiskers'][1]._y[1]
+m1 = bxplt['whiskers'][0]._y[0]
+m2 = bxplt['whiskers'][0]._y[1]
+v_sel = pptk.viewer(selected,z)
+v_sel.color_map('jet',scale=[m1,M2])
+np.savetxt('selected.txt', selected) # Transposta dos dados
 
 # LER NUVEM DE PONTOS
-arquivo= root+"selected.txt" 
+arquivo= root+"selected.txt"
 dados_df= np.loadtxt(arquivo, delimiter= ' ')
 dados_df= dados_df[:,:3] # ajustar arquivo txt - (linha , coluna)
 dados=dados_df[dados_df[:,0].argsort()] #ordenar eixo x
@@ -81,7 +99,6 @@ for i in range(len(dados_x)//intervalo):
 
     plt.close()
 
-
 # Identificar o numero de slices na path
 folder = root+'selecao_teste' # path dos slices
 filepaths = glob.glob(folder+ "/*.png", recursive= True)  
@@ -102,5 +119,3 @@ somaslices = total
 volumeareaporpixels= somaslices*0.005657 #relação pixels to m3 
 
 print("Volume total = {} m³".format(volumeareaporpixels))
-
-
