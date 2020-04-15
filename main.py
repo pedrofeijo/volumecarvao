@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 
-############    LAPISCO / GPAR            ############
-############    Developer: Pedro Feijó    ############
-############    Segmentação               ############
-############    Calcular Volume           ############
+############    LAPISCO / GPAR                   ############
+############    Developer: Pedro Feijó           ############
+############    Adatpação IHM: Adriano Rodrigues
+############    Segmentação                      ############
+############    Calcular Volume                  ############
 
 import pptk
 import pandas as pd
@@ -28,7 +29,8 @@ except:
 ##### Segmentar Nuvem de Pontos
 
 # nuvem = root + 'pontos.txt'
-nuvem = root + 'ensaio9teste15.txt'
+# nuvem = root + 'ensaio9teste15.txt'
+nuvem = root + 'ensaio9alinhado.txt'
 try:
     xyz= np.loadtxt(nuvem, delimiter= ' ')
 except:
