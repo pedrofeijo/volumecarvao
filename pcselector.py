@@ -13,6 +13,7 @@ from   Xlib.display import Display
 from   PIL import Image
 
 winId = 0
+root  = os.path.dirname(os.path.abspath(__file__)) + '/'
 
 def findViewer(window, indent):
     global winId
@@ -64,27 +65,6 @@ def getPC():
     v = pptk.viewer(xyz,z)
     # Displays point cloud
     v.color_map('jet',scale=[m1,M2])
-    # # Waits for keypress: 'Enter' to confirm and 'Esc' to cancel
-    # v.wait()
-
-    # # Collects selected points indexes
-    # sel = v.get('selected')
-    # len(sel)
-    # # Create a numpy matrixes of selected points
-    # selected = xyz[sel,:]
-    # # Register z values (used to coloring)
-    # z = selected[:,2]
-
-    # # Filter z data to exclude outliers and help colouring
-    # bxplt = plt.boxplot(z)
-    # m1 = bxplt['whiskers'][0]._y[0] # Minimum value of the minimum range
-    # M2 = bxplt['whiskers'][1]._y[1] # Maximum value of the maximum range
-
-    # # Load point cloud to viewer referencing z axis to colors
-    # v_sel = pptk.viewer(selected,z)
-    # # Displays point cloud
-    # v_sel.color_map('jet',scale=[m1,M2])
-    # return v
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -99,25 +79,85 @@ class MainWindow(QtWidgets.QMainWindow):
         findViewer(self.xlib, '-')
         self.window = QtGui.QWindow.fromWinId(winId)
         self.windowcontainer = self.createWindowContainer(self.window, widget)
-        self.buttonLoad = QtWidgets.QPushButton("Carregar nuvem")
-        self.buttonLoad.clicked.connect(self.onclick)
-        self.buttonSave = QtWidgets.QPushButton("Salvar")
-        self.buttonUndo = QtWidgets.QPushButton("Desfazer")
-        self.buttonClose = QtWidgets.QPushButton("Fechar")
+        self.buttonLoad    = QtWidgets.QPushButton("Carregar nuvem")
+        self.buttonConfirm = QtWidgets.QPushButton("Confirmar alterações")
+        self.buttonSave    = QtWidgets.QPushButton("Salvar")
+        self.buttonUndo    = QtWidgets.QPushButton("Desfazer")
+        self.buttonClose   = QtWidgets.QPushButton("Fechar")
         self.dialogBox = QtWidgets.QTextEdit("Área de informações")
-        layout.addWidget(self.windowcontainer, 0, 1, 5,10)
-        layout.addWidget(self.buttonLoad , 0, 0)
-        layout.addWidget(self.buttonSave , 1, 0)
-        layout.addWidget(self.buttonUndo , 2, 0)
-        layout.addWidget(self.buttonClose, 3, 0)
-        layout.addWidget(self.dialogBox  , 4, 0)
+        
+        self.buttonLoad.clicked.connect(self.loadClick)
+        self.buttonConfirm.clicked.connect(self.confirmClick)
+        self.buttonSave.clicked.connect(self.saveClick)
+        self.buttonUndo.clicked.connect(self.undoClick)
+        self.buttonClose.clicked.connect(self.closeClick)
+
+        layout.addWidget(self.windowcontainer, 0, 1, 6, 10)
+        layout.addWidget(self.buttonLoad    , 0, 0)
+        layout.addWidget(self.buttonConfirm , 1, 0)
+        layout.addWidget(self.buttonSave    , 2, 0)
+        layout.addWidget(self.buttonUndo    , 3, 0)
+        layout.addWidget(self.buttonClose   , 4, 0)
+        layout.addWidget(self.dialogBox, 5, 0)
         layout.setColumnStretch(1, 3)
-    
-    def onclick(self):
+
+    def loadClick(self):
+        global nuvem, root, v, xyz
+        fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", root, "Arquivos de nuvem de pontos (*.txt)")
+        nuvem = fname[0]
+
+        # Path to slices figures
+        pathToSlices = root + 'selecao_teste' # path dos slices
+        try:
+            # Tries to make the directory "selecao_teste"
+            os.mkdir(pathToSlices)
+        except:
+            pass
+        ##### Segmentar Nuvem de Pontos
+
+        try:
+            # Try to load the txt point cloud into a numpy float matrix
+            xyz = np.loadtxt(nuvem, delimiter= ' ')
+        except:
+            # Display error message if load fails
+            sys.exit('Error loading ' + nuvem + '!')
+
+        # Filter x, y and z coordinates
+        xyz = xyz[:,:3]
+        # Register z values (used to coloring)
+        z = xyz[:,2]
+
+        # Filter z data to exclude outliers and help colouring
+        bxplt = plt.boxplot(z)
+        m1 = bxplt['whiskers'][0]._y[0] # Minimum value of the minimum range
+        M2 = bxplt['whiskers'][1]._y[1] # Maximum value of the maximum range
+        # plt.show() # displays boxplot
+
+        # Load point cloud to viewer referencing z axis to colors
+        v = pptk.viewer(xyz,z)
+        # Displays point cloud
+        v.color_map('jet',scale=[m1,M2])
+
+    def saveClick(self):
+        self.dialogBox.moveCursor(QtGui.QTextCursor.End)
+        self.dialogBox.textCursor().insertText('hey')
+
+    def undoClick(self):
+        True
+
+    def closeClick(self):
+        self.close()
+        
+    def confirmClick(self):
+        self.dialogBox.clear()
+        self.dialogBox.textCursor().insertText('Calculando...\n')
+        pathToSlices = root + 'selecao_teste'
         # Collects selected points indexes
         sel = v.get('selected')
         len(sel)
         # Create a numpy matrixes of selected points
+        if len(sel)==0:
+            return
         selected = xyz[sel,:]
         # Register z values (used to coloring)
         z = selected[:,2]
@@ -177,8 +217,8 @@ class MainWindow(QtWidgets.QMainWindow):
             plt.close()
 
         # Identificar o numero de slices na path
-        filepaths = glob.glob(pathToSlices+ "/*.png", recursive= True)  
-        print (len(filepaths)) # Número de arquivos na path
+        filepaths = glob.glob(pathToSlices+ "/*.png", recursive= True)
+        print(len(filepaths)) # Número de arquivos na path
 
         total = 0
 
@@ -193,7 +233,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         somaslices = total
         volumeareaporpixels= somaslices*0.005657 #relação pixels to m3 
-
+        
+        self.dialogBox.textCursor().insertText("Volume total = {} m³".format(volumeareaporpixels))
         print("Volume total = {} m³".format(volumeareaporpixels))
 
 if __name__ == '__main__':
