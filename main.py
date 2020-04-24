@@ -91,10 +91,10 @@ arquivo  = root + "selected.txt"
 dados_df = np.loadtxt(arquivo, delimiter= ' ')
 dados_df = dados_df[:,:3] # ajustar arquivo txt - (linha , coluna)
 
-dados    = dados_df[dados_df[:,0].argsort()] # ordenar eixo x
-dados_x  = dados[:,0]
-dados_y  = dados[:,1]
-dados_z  = dados[:,2]
+dados   = dados_df[dados_df[:,0].argsort()] # ordenar eixo x
+dados_x = dados[:,0]
+dados_y = dados[:,1]
+dados_z = dados[:,2]
 
 # SEPARAR EM SLICES NO EIXO X COM INTERVALOR DE 1000
 intervalo= 1000 # se ficar menor não fecha o polígono
