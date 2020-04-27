@@ -25,7 +25,7 @@ def findViewer(window, indent):
                 winId = w.id
 
 def getPC():
-    global v, xyz
+    global v, xyz, root, pathToSlices
     # Get script file's root name
     root = os.path.dirname(os.path.abspath(__file__)) + '/'
 
@@ -38,47 +38,24 @@ def getPC():
         pass
     ##### Segmentar Nuvem de Pontos
 
-    # Choose a txt point cloud file
-    nuvem = root + 'pontos.txt'
-    # nuvem = root + 'ensaio9teste15.txt'
-    # nuvem = root + 'ensaio9alinhado.txt'
-
-    try:
-        # Try to load the txt point cloud into a numpy float matrix
-        xyz = np.loadtxt(nuvem, delimiter= ' ')
-    except:
-        # Display error message if load fails
-        sys.exit('Error loading ' + nuvem + '!')
-
-    # Filter x, y and z coordinates
-    xyz = xyz[:,:3]
-    # Register z values (used to coloring)
-    z = xyz[:,2]
-
-    # Filter z data to exclude outliers and help colouring
-    bxplt = plt.boxplot(z)
-    m1 = bxplt['whiskers'][0]._y[0] # Minimum value of the minimum range
-    M2 = bxplt['whiskers'][1]._y[1] # Maximum value of the maximum range
-    # plt.show() # displays boxplot
-
-    # Load point cloud to viewer referencing z axis to colors
-    v = pptk.viewer(xyz,z)
+    v = pptk.viewer([1,1,1])
     # Displays point cloud
-    v.color_map('jet',scale=[m1,M2])
+    v.set(bg_color=[1.0,1.0,1.0,0.0])
+    v.set(floor_color=[1.0,1.0,1.0,0.0])
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
-        widget = QtWidgets.QWidget()
-        layout = QtWidgets.QGridLayout(widget)
-        self.setCentralWidget(widget)
+        self.mywidget = QtWidgets.QWidget()
+        self.mylayout = QtWidgets.QGridLayout(self.mywidget)
+        self.setCentralWidget(self.mywidget)
 
         getPC()
         self.xlib = Display().screen().root
         findViewer(self.xlib, '-')
         self.window = QtGui.QWindow.fromWinId(winId)
-        self.windowcontainer = self.createWindowContainer(self.window, widget)
+        self.windowcontainer = self.createWindowContainer(self.window, self.mywidget)
         self.buttonLoad    = QtWidgets.QPushButton("Carregar nuvem")
         self.buttonConfirm = QtWidgets.QPushButton("Confirmar alterações")
         self.buttonSave    = QtWidgets.QPushButton("Salvar")
@@ -92,14 +69,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.buttonUndo.clicked.connect(self.undoClick)
         self.buttonClose.clicked.connect(self.closeClick)
 
-        layout.addWidget(self.windowcontainer, 0, 1, 6, 10)
-        layout.addWidget(self.buttonLoad    , 0, 0)
-        layout.addWidget(self.buttonConfirm , 1, 0)
-        layout.addWidget(self.buttonSave    , 2, 0)
-        layout.addWidget(self.buttonUndo    , 3, 0)
-        layout.addWidget(self.buttonClose   , 4, 0)
-        layout.addWidget(self.dialogBox, 5, 0)
-        layout.setColumnStretch(1, 3)
+        self.mylayout.addWidget(self.windowcontainer, 0, 1, 6, 10)
+        self.mylayout.addWidget(self.buttonLoad     , 0, 0)
+        self.mylayout.addWidget(self.buttonConfirm  , 1, 0)
+        self.mylayout.addWidget(self.buttonSave     , 2, 0)
+        self.mylayout.addWidget(self.buttonUndo     , 3, 0)
+        self.mylayout.addWidget(self.buttonClose    , 4, 0)
+        self.mylayout.addWidget(self.dialogBox      , 5, 0)
+        self.mylayout.setColumnStretch(1, 3)
 
     def loadClick(self):
         global nuvem, root, v, xyz
@@ -137,18 +114,28 @@ class MainWindow(QtWidgets.QMainWindow):
         v = pptk.viewer(xyz,z)
         # Displays point cloud
         v.color_map('jet',scale=[m1,M2])
+        v.set(bg_color=[1.0,1.0,1.0,0.0])
+        v.set(floor_color=[1.0,1.0,1.0,0.0])
+        self.xlib = Display().screen().root
+        findViewer(self.xlib, '-')
+        self.window = QtGui.QWindow.fromWinId(winId)
+        self.windowcontainer = self.createWindowContainer(self.window, self.mywidget)
+        self.mylayout.addWidget(self.windowcontainer, 0, 1, 6, 10)
+
 
     def saveClick(self):
         self.dialogBox.moveCursor(QtGui.QTextCursor.End)
-        self.dialogBox.textCursor().insertText('hey')
+        self.dialogBox.textCursor().insertText('Save')
 
     def undoClick(self):
-        True
+        self.dialogBox.textCursor().insertText('Undo')
 
     def closeClick(self):
+        self.dialogBox.textCursor().insertText('Close')
         self.close()
         
     def confirmClick(self):
+        self.dialogBox.textCursor().insertText('Confirm')
         self.dialogBox.clear()
         self.dialogBox.textCursor().insertText('Calculando...\n')
         pathToSlices = root + 'selecao_teste'
@@ -171,6 +158,18 @@ class MainWindow(QtWidgets.QMainWindow):
         v_sel = pptk.viewer(selected,z)
         # Displays point cloud
         v_sel.color_map('jet',scale=[m1,M2])
+        v_sel.set(floor_color=[1.0,1.0,1.0,0.0])
+        v_sel.set(bg_color=[1.0,1.0,1.0,0.0])
+        self.xlib = Display().screen().root
+        findViewer(self.xlib, '-')
+        self.window = QtGui.QWindow.fromWinId(winId)
+        self.windowcontainer = self.createWindowContainer(self.window, self.mywidget)
+        self.mylayout.addWidget(self.windowcontainer, 0, 1, 6, 10)
+        self.repaint()
+        self.update()
+        self.hide()
+        self.show()
+        
         # Save archive with selected points
         np.savetxt('selected.txt', selected) # Transposta dos dados
 
