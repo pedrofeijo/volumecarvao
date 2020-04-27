@@ -58,6 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.windowcontainer = self.createWindowContainer(self.window, self.mywidget)
         self.buttonLoad    = QtWidgets.QPushButton("Carregar nuvem")
         self.buttonConfirm = QtWidgets.QPushButton("Confirmar alterações")
+        self.buttonVolume  = QtWidgets.QPushButton("Calcular volume")
         self.buttonSave    = QtWidgets.QPushButton("Salvar")
         self.buttonUndo    = QtWidgets.QPushButton("Desfazer")
         self.buttonClose   = QtWidgets.QPushButton("Fechar")
@@ -65,21 +66,23 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.buttonLoad.clicked.connect(self.loadClick)
         self.buttonConfirm.clicked.connect(self.confirmClick)
+        self.buttonVolume.clicked.connect(self.calcClick)
         self.buttonSave.clicked.connect(self.saveClick)
         self.buttonUndo.clicked.connect(self.undoClick)
         self.buttonClose.clicked.connect(self.closeClick)
 
-        self.mylayout.addWidget(self.windowcontainer, 0, 1, 6, 10)
+        self.mylayout.addWidget(self.windowcontainer, 0, 1, 7, 10)
         self.mylayout.addWidget(self.buttonLoad     , 0, 0)
         self.mylayout.addWidget(self.buttonConfirm  , 1, 0)
-        self.mylayout.addWidget(self.buttonSave     , 2, 0)
-        self.mylayout.addWidget(self.buttonUndo     , 3, 0)
-        self.mylayout.addWidget(self.buttonClose    , 4, 0)
-        self.mylayout.addWidget(self.dialogBox      , 5, 0)
+        self.mylayout.addWidget(self.buttonVolume   , 2, 0)
+        self.mylayout.addWidget(self.buttonSave     , 3, 0)
+        self.mylayout.addWidget(self.buttonUndo     , 4, 0)
+        self.mylayout.addWidget(self.buttonClose    , 5, 0)
+        self.mylayout.addWidget(self.dialogBox      , 6, 0)
         self.mylayout.setColumnStretch(1, 3)
 
     def loadClick(self):
-        global nuvem, root, v, xyz
+        global v, xyz, root, pathToSlices
         fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", root, "Arquivos de nuvem de pontos (*.txt)")
         nuvem = fname[0]
 
@@ -120,7 +123,7 @@ class MainWindow(QtWidgets.QMainWindow):
         findViewer(self.xlib, '-')
         self.window = QtGui.QWindow.fromWinId(winId)
         self.windowcontainer = self.createWindowContainer(self.window, self.mywidget)
-        self.mylayout.addWidget(self.windowcontainer, 0, 1, 6, 10)
+        self.mylayout.addWidget(self.windowcontainer, 0, 1, 7, 10)
 
 
     def saveClick(self):
@@ -135,6 +138,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.close()
         
     def confirmClick(self):
+        global xyz, v, root, pathToSlices
         self.dialogBox.textCursor().insertText('Confirm')
         self.dialogBox.clear()
         self.dialogBox.textCursor().insertText('Calculando...\n')
@@ -145,9 +149,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create a numpy matrixes of selected points
         if len(sel)==0:
             return
-        selected = xyz[sel,:]
+        xyz = xyz[sel,:]
         # Register z values (used to coloring)
-        z = selected[:,2]
+        z = xyz[:,2]
 
         # Filter z data to exclude outliers and help colouring
         bxplt = plt.boxplot(z)
@@ -155,24 +159,21 @@ class MainWindow(QtWidgets.QMainWindow):
         M2 = bxplt['whiskers'][1]._y[1] # Maximum value of the maximum range
 
         # Load point cloud to viewer referencing z axis to colors
-        v_sel = pptk.viewer(selected,z)
+        v = pptk.viewer(xyz,z)
         # Displays point cloud
-        v_sel.color_map('jet',scale=[m1,M2])
-        v_sel.set(floor_color=[1.0,1.0,1.0,0.0])
-        v_sel.set(bg_color=[1.0,1.0,1.0,0.0])
+        v.color_map('jet',scale=[m1,M2])
+        v.set(bg_color=[1.0,1.0,1.0,0.0])
+        v.set(floor_color=[1.0,1.0,1.0,0.0])
         self.xlib = Display().screen().root
         findViewer(self.xlib, '-')
         self.window = QtGui.QWindow.fromWinId(winId)
         self.windowcontainer = self.createWindowContainer(self.window, self.mywidget)
-        self.mylayout.addWidget(self.windowcontainer, 0, 1, 6, 10)
-        self.repaint()
-        self.update()
-        self.hide()
-        self.show()
+        self.mylayout.addWidget(self.windowcontainer, 0, 1, 7, 10)
         
         # Save archive with selected points
-        np.savetxt('selected.txt', selected) # Transposta dos dados
-
+        np.savetxt('selected.txt', xyz) # Transposta dos dados
+    
+    def calcClick(self):
         # LER NUVEM DE PONTOS
         # Set root path to selected points
         arquivo  = root + "selected.txt"
