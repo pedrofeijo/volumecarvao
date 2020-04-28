@@ -8,7 +8,7 @@ import glob
 import sys
 import os
 from   descartes import PolygonPatch
-from   PyQt5 import QtWidgets, QtGui
+from   PyQt5 import QtWidgets, QtGui, QtCore
 from   Xlib.display import Display
 from   PIL import Image
 
@@ -81,6 +81,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mylayout.addWidget(self.dialogBox      , 6, 0)
         self.mylayout.setColumnStretch(1, 3)
 
+        self.buttonVolume.setEnabled(False)
+
     def loadClick(self):
         global v, xyz, root, pathToSlices
         fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", root, "Arquivos de nuvem de pontos (*.txt)")
@@ -124,6 +126,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.window = QtGui.QWindow.fromWinId(winId)
         self.windowcontainer = self.createWindowContainer(self.window, self.mywidget)
         self.mylayout.addWidget(self.windowcontainer, 0, 1, 7, 10)
+        self.buttonVolume.setEnabled(True)
 
 
     def saveClick(self):
@@ -131,17 +134,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dialogBox.textCursor().insertText('Save')
 
     def undoClick(self):
+        self.dialogBox.moveCursor(QtGui.QTextCursor.End)
         self.dialogBox.textCursor().insertText('Undo')
 
     def closeClick(self):
-        self.dialogBox.textCursor().insertText('Close')
         self.close()
         
     def confirmClick(self):
         global xyz, v, root, pathToSlices
-        self.dialogBox.textCursor().insertText('Confirm')
         self.dialogBox.clear()
-        self.dialogBox.textCursor().insertText('Calculando...\n')
+        self.dialogBox.textCursor().insertText('Modificando...\n')
         pathToSlices = root + 'selecao_teste'
         # Collects selected points indexes
         sel = v.get('selected')
@@ -174,11 +176,17 @@ class MainWindow(QtWidgets.QMainWindow):
         np.savetxt('selected.txt', xyz) # Transposta dos dados
     
     def calcClick(self):
+        global xyz
+        self.dialogBox.clear()
+        self.dialogBox.textCursor().insertText('Calculando...\n')
         # LER NUVEM DE PONTOS
         # Set root path to selected points
         arquivo  = root + "selected.txt"
-        # Try to load the txt point cloud into a numpy float matrix
-        dados_df = np.loadtxt(arquivo, delimiter= ' ')
+        try:
+            # Try to load the txt point cloud into a numpy float matrix
+            dados_df = np.loadtxt(arquivo, delimiter= ' ')
+        except:
+            dados_df = xyz
         dados_df = dados_df[:,:3] # ajustar arquivo txt - (linha , coluna)
 
         dados   = dados_df[dados_df[:,0].argsort()] # ordenar eixo x
@@ -236,6 +244,10 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.dialogBox.textCursor().insertText("Volume total = {} m³".format(volumeareaporpixels))
         print("Volume total = {} m³".format(volumeareaporpixels))
+
+    def closeEvent(self, event):
+        os.system('rm -fr '+root+'selecao_teste')
+        os.system('rm '+root+'selected.txt')
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
