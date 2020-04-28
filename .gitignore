@@ -1,4 +1,4 @@
 *.env
 *.vscode
-selected.txt
-selecao_teste/*
+.selected.txt
+.selecao_teste/*
