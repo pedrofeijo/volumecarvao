@@ -43,12 +43,12 @@ def getPC():
 
     # Dummy point cloud
     v = pptk.viewer([1,1,1])
-    v.set(bg_color=[1.0,1.0,1.0,0.0])
-    v.set(floor_color=[1.0,1.0,1.0,0.0])
+    v.set(bg_color = [1.0,1.0,1.0,0.0])
+    v.set(floor_color = [1.0,1.0,1.0,0.0])
 
 # Main window code
 class MainWindow(QtWidgets.QMainWindow):
-    # Initialization function
+    # INITIALIZATION FUNCTION
     def __init__(self):
         super(MainWindow, self).__init__()
 
@@ -103,6 +103,8 @@ class MainWindow(QtWidgets.QMainWindow):
         getPC()
         self.embedPC()
     
+
+    # FUNCTION: Embed point cloud
     def embedPC(self):
         # Find pptk window ID
         self.xlib = Display().screen().root
@@ -114,7 +116,14 @@ class MainWindow(QtWidgets.QMainWindow):
         # Setting container to layout
         self.mylayout.addWidget(self.windowcontainer, 0, 1, 8, 10)
 
-    # Load new point cloud
+
+    # FUNCTION: Clear temporary files
+    def clearTempFiles(self):
+        os.system('rm -fr '+root+'.selecao_teste 2> /dev/null')
+        os.system('rm '+root+'.selected.txt 2> /dev/null')
+
+
+    # CLICK: Load new point cloud
     def loadClick(self):
         # Modified global variables
         global v, xyz
@@ -122,30 +131,31 @@ class MainWindow(QtWidgets.QMainWindow):
         # Status message
         self.dialogBox.clear()
         self.dialogBox.textCursor().insertText('Escolhendo nuvem de pontos...\n')
+        self.repaint()
 
         # Open a dialog box
         fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", root, "Arquivos de nuvem de pontos (*.txt)")
         # If nothing is selected: return
         if fname ==('',''):
-            self.dialogBox.clear()
             self.dialogBox.textCursor().insertText('Nenhuma nuvem escolhida!\n')
+            self.repaint()
             return
         # Get file name
         nuvem = fname[0]
         # Status message
         self.dialogBox.clear()
-        self.dialogBox.textCursor().insertText('Arquivo: ' + nuvem + '.')
+        self.dialogBox.textCursor().insertText('Arquivo: ' + nuvem + '.\n')
+        self.repaint()
         # Try to load the txt point cloud into a numpy float matrix.
         try:
             xyz = np.loadtxt(nuvem, delimiter= ' ')
         except:
-            self.dialogBox.textCursor().insertText('\nErro: Arquivo inválido!\n')
+            self.dialogBox.textCursor().insertText('Erro: arquivo inválido!\n')
+            self.repaint()
             getPC()
             self.embedPC()
             return
 
-        # Status message
-        self.dialogBox.textCursor().insertText(' Ok!')
         # Filter x, y and z coordinates
         xyz = xyz[:,:3]
         # Register z values (used to coloring)
@@ -165,69 +175,32 @@ class MainWindow(QtWidgets.QMainWindow):
         # Embed pptk
         self.embedPC()
         self.buttonConfirm.setEnabled(True)
+        self.buttonVolume.setEnabled(True)
+    
 
-    # Save current point cloud
-    def saveClick(self):
-        # Modified global variables
-        global flagModification
-        
-        self.dialogBox.textCursor().insertText('Salvando nuvem de pontos...')
-        fname = QtWidgets.QFileDialog.getSaveFileName(self, 'Salvar nuvem de pontos', root, "Arquivos de nuvem de pontos (*.txt)")
-        if fname == ('',''):
-            self.dialogBox.textCursor().insertText(' Cancelar!')
-            return
-        file = open(fname[0],'w')
-        text = open(pathToCachedPC,'r').read()
-        file.write(text)
-        file.close()
-        self.dialogBox.textCursor().insertText('Ok!\n')
-        self.dialogBox.textCursor().insertText('Nuvem de pontos salva em: '+fname[0]+'\n')
-        flagModification = False
-
-    # Return to previous modification state
-    def undoClick(self):
-        self.dialogBox.moveCursor(QtGui.QTextCursor.End)
-        self.dialogBox.textCursor().insertText('Undo')
-        self.buttonRedo.setEnabled(True)
-
-    # Return to later modification state after Undo
-    def redoClick(self):
-        self.dialogBox.moveCursor(QtGui.QTextCursor.End)
-        self.dialogBox.textCursor().insertText('Redo')
-
-    # Close application
-    def closeClick(self):
-        self.close()
-        
-    # Confirm modification
+    # CLICK: Confirm modification
     def confirmClick(self):
         # Modified global variables
-        global xyz, v, root, flagModification
+        global xyz, v, flagModification
         
         # Status message
         self.dialogBox.clear()
-        self.dialogBox.textCursor().insertText('Buscando ponto selecionados... ')
+        self.dialogBox.textCursor().insertText('Buscando ponto selecionados...\n')
+        self.repaint()
 
         ##### Segmentar Nuvem de Pontos #####
         # Collects selected points indexes
         sel = v.get('selected')
-        len(sel)
+        nSel = len(sel)
         # Create a numpy matrixes of selected points
-        if len(sel) == 0:
+        if nSel == 0:
             # Status message
             self.dialogBox.moveCursor(QtGui.QTextCursor.End)
-            self.dialogBox.textCursor().insertText('Nenhum ponto selecionado!\nUtilize o botão esquerdo do mouse (BEM) com a tecla Control para efetuar seleção no campo de nuvem de pontos: BEM+Ctrl')
+            self.dialogBox.textCursor().insertText('Alerta: nenhum ponto selecionado!\nUtilize o botão esquerdo do mouse (BEM) com a tecla Control para efetuar seleção no campo de nuvem de pontos: BEM+Ctrl')
+            self.repaint()
             return
-        else:
-            self.dialogBox.textCursor().insertText('Ok!\n')
-            # Path to slices
-            try:
-                # Tries to make temporary directory
-                os.mkdir(pathToSlices)
-                # Status message
-                self.dialogBox.textCursor().insertText('Criando diretório temporário... Ok!\n')
-            except:
-                pass
+
+        # Create a vector of selected points
         xyz = xyz[sel,:]
         # Register z values (used to coloring)
         z = xyz[:,2]
@@ -248,31 +221,54 @@ class MainWindow(QtWidgets.QMainWindow):
         # Save archive with selected points
         np.savetxt(pathToCachedPC, xyz) # Transposta dos dados
 
+        # Set modification flag
         flagModification = True
+        # Enable folowing buttons
         self.buttonVolume.setEnabled(True)
         self.buttonSave.setEnabled(True)
         self.buttonUndo.setEnabled(True)
-    
+
+        # Status message
+        self.dialogBox.textCursor().insertText(str(nSel)+' pontos selecionados.\n')
+        self.repaint()
+
+   
+    # CLICK: Volume calculation
     def calcClick(self):
-        global xyz, pathToSlices
-        self.dialogBox.clear()
-        self.dialogBox.textCursor().insertText('Calculando...\n')
         # LER NUVEM DE PONTOS
         # Set root path to selected points
         try:
             # Try to load the txt point cloud into a numpy float matrix
             dados_df = np.loadtxt(pathToCachedPC, delimiter= ' ')
         except:
+            # Use entire cloud
             dados_df = xyz
-        dados_df = dados_df[:,:3] # ajustar arquivo txt - (linha , coluna)
+        # Status message
+        self.dialogBox.textCursor().insertText('Calculando...\n')
+        self.repaint()
 
-        dados   = dados_df[dados_df[:,0].argsort()] # ordenar eixo x
+        # Ajustar arquivo txt - (linha , coluna)
+        dados_df = dados_df[:,:3]
+        # Ordenar eixo x
+        dados   = dados_df[dados_df[:,0].argsort()]
+        # Armazena cada eixo em uma variavel
         dados_x = dados[:,0]
         dados_y = dados[:,1]
         dados_z = dados[:,2]
+        
+        # Path to slices
+        try:
+            # Tries to make temporary directory
+            os.mkdir(pathToSlices)
+            # Status message
+            self.dialogBox.textCursor().insertText('Criando diretório temporário...\n')
+            self.repaint()
+        except:
+            # Remove previous slices
+            os.system('rm '+ pathToSlices + '* 2> /dev/null')
 
         # SEPARAR EM SLICES NO EIXO X COM INTERVALOR DE 1000
-        intervalo= 1000 # se ficar menor não fecha o polígono
+        intervalo = 1000 # se ficar menor não fecha o polígono
         for i in range(len(dados_x)//intervalo):
             points = [(y,z) for y,z in zip(dados_y[i*intervalo: (i+1)*intervalo],dados_z[i*intervalo: (i+1)*intervalo])]
 
@@ -302,7 +298,7 @@ class MainWindow(QtWidgets.QMainWindow):
             plt.close()
 
         # Identificar o numero de slices na path
-        filepaths = glob.glob(pathToSlices+ "/*.png", recursive= True)
+        filepaths = glob.glob(pathToSlices+ "*.png", recursive= True)
         print(len(filepaths)) # Número de arquivos na path
 
         total = 0
@@ -319,9 +315,50 @@ class MainWindow(QtWidgets.QMainWindow):
         somaslices = total
         volumeareaporpixels= somaslices*0.005657 #relação pixels to m3 
         
-        self.dialogBox.textCursor().insertText("Volume total = {} m³".format(volumeareaporpixels))
+        self.dialogBox.textCursor().insertText("Volume total = {} m³".format(volumeareaporpixels)+'.\n')
+        self.repaint()
         print("Volume total = {} m³".format(volumeareaporpixels))
 
+
+    # CLICK: Save current point cloud
+    def saveClick(self):
+        # Modified global variables
+        global flagModification
+        
+        self.dialogBox.textCursor().insertText('Salvando nuvem de pontos...\n')
+        self.repaint()
+        fname = QtWidgets.QFileDialog.getSaveFileName(self, 'Salvar nuvem de pontos', root, "Arquivos de nuvem de pontos (*.txt)")
+        if fname == ('',''):
+            self.dialogBox.textCursor().insertText('Operação "salvar" cancelada!\n')
+            self.repaint()
+            return
+        file = open(fname[0],'w')
+        text = open(pathToCachedPC,'r').read()
+        file.write(text)
+        file.close()
+        self.dialogBox.textCursor().insertText('Nuvem de pontos salva em:\n'+fname[0]+'\n')
+        self.repaint()
+        flagModification = False
+
+    # CLICK: Return to previous modification state
+    def undoClick(self):
+        self.dialogBox.textCursor().insertText('Undo')
+        self.repaint()
+        self.buttonRedo.setEnabled(True)
+
+
+    # CLICK: Return to later modification state after Undo
+    def redoClick(self):
+        self.dialogBox.textCursor().insertText('Redo')
+        self.repaint()
+
+
+    # CLICK: Close application
+    def closeClick(self):
+        self.close()
+    
+
+    # EVENT: Close window event
     def closeEvent(self, event):
         global flagModification
         if flagModification:
@@ -336,10 +373,6 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.clearTempFiles()
             event.accept()
-
-    def clearTempFiles(self):
-        os.system('rm -fr '+root+'.selecao_teste 2> /dev/null')
-        os.system('rm '+root+'.selected.txt 2> /dev/null')
 
 
 
