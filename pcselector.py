@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import alphashape
+import platform
 import random
 import shutil
 import pptk
@@ -10,8 +11,14 @@ import sys
 import os
 from   descartes import PolygonPatch
 from   PyQt5 import QtWidgets, QtGui, QtCore
-from   Xlib.display import Display
 from   PIL import Image
+
+# Detect operational system
+OS = platform.system()
+if OS == 'Linux':
+    from Xlib.display import Display
+elif OS == 'Windows':
+    import win32gui
 
 # GLOBAL VARIABLES
 # ID of pptk window for embeding procedure
@@ -99,7 +106,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mylayout.addWidget(self.buttonRedo     , 5, 0)
         self.mylayout.addWidget(self.buttonClose    , 6, 0)
         self.mylayout.addWidget(self.dialogBox      , 7, 0)
-        
+        self.setMinimumSize(1000,500)
         # Creating a dummy pptk window
         getPC()
         self.embedPC()
@@ -108,14 +115,20 @@ class MainWindow(QtWidgets.QMainWindow):
     # FUNCTION: Embed point cloud
     def embedPC(self):
         # Find pptk window ID
-        self.xlib = Display().screen().root
-        findViewer(self.xlib, '-')
+        if OS == 'Windows':
+            global winId
+            winId = win32gui.FindWindowEx(0, 0, None, "viewer")
+            # winId = 65932
+            # winId = win32gui.FindWindowEx(0)
+        elif OS == 'Linux':
+            self.xlib = Display().screen().root
+            findViewer(self.xlib, '-')
         # Creating a window object
         self.window = QtGui.QWindow.fromWinId(winId)
         # Defining container object
         self.windowcontainer = self.createWindowContainer(self.window, self.mywidget)
         # Setting container to layout
-        self.mylayout.addWidget(self.windowcontainer, 0, 1, 8, 10)
+        self.mylayout.addWidget(self.windowcontainer, 0, 1, 8, 5)
 
 
     # FUNCTION: Clear temporary files
@@ -383,7 +396,7 @@ if __name__ == '__main__':
     app.setStyle("fusion")
     form = MainWindow()
     form.setWindowTitle('Editor de Nuvem de Pontos')
-    form.setGeometry(100, 100, 600, 500)
+    #form.setGeometry(100, 100, 600, 500)
     form.show()
 
     sys.exit(app.exec_())
