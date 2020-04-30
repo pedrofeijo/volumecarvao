@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import alphashape
 import random
+import shutil
 import pptk
 import glob
 import sys
@@ -119,9 +120,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # FUNCTION: Clear temporary files
     def clearTempFiles(self):
-        os.system('rm -fr '+root+'.selecao_teste 2> /dev/null')
-        os.system('rm '+root+'.selected.txt 2> /dev/null')
-
+        if os.path.exists(pathToSlices):
+            shutil.rmtree(pathToSlices)
+        if os.path.exists(pathToCachedPC):
+            os.remove(pathToCachedPC)
 
     # CLICK: Load new point cloud
     def loadClick(self):
@@ -257,15 +259,15 @@ class MainWindow(QtWidgets.QMainWindow):
         dados_z = dados[:,2]
         
         # Path to slices
-        try:
-            # Tries to make temporary directory
-            os.mkdir(pathToSlices)
+        if os.path.exists(pathToSlices):
+            shutil.rmtree(pathToSlices)
+        else:
             # Status message
             self.dialogBox.textCursor().insertText('Criando diretório temporário...\n')
             self.repaint()
-        except:
-            # Remove previous slices
-            os.system('rm '+ pathToSlices + '* 2> /dev/null')
+            
+        # Make temporary directory
+        os.mkdir(pathToSlices)
 
         # SEPARAR EM SLICES NO EIXO X COM INTERVALOR DE 1000
         intervalo = 1000 # se ficar menor não fecha o polígono
