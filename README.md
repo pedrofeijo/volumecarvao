@@ -14,7 +14,7 @@ source .env/bin/activate
 # Install requirements
 pip install -r requirements.txt
 # Make script executable
-chmod +x main.py
+chmod +x pcselector.py
 ```
 ## Running the script on Ubuntu 16.04
 Just run the script as an executable:
