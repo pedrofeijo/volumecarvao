@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -9,8 +11,8 @@ import pptk
 import glob
 import sys
 import os
-from   descartes import PolygonPatch
 from   PyQt5 import QtWidgets, QtGui, QtCore
+from   descartes import PolygonPatch
 from   PIL import Image
 
 # Detect operational system
