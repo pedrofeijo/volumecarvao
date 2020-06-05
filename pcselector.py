@@ -1,11 +1,11 @@
-import matplotlib
-matplotlib.use('agg')
+#!/usr/bin/python3.8
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import alphashape
 import platform
 import random
+import string
 import shutil
 import pptk
 import glob
@@ -15,6 +15,20 @@ from   PyQt5 import QtWidgets, QtGui, QtCore
 from   descartes import PolygonPatch
 from   PIL import Image
 
+# Random vector to create program ID
+randIdVec = string.ascii_letters+'0123456789'
+# Select 3 elements from randIdVec at random as ID
+ID = random.choice(randIdVec)+random.choice(randIdVec)+random.choice(randIdVec)
+# Action counter
+counter = -1
+# Action index
+index = 0
+# Action history
+history = []
+# Action history before
+historyBefore =[]
+# Action history after
+historyAfter =[]
 # Detect operational system
 OS = platform.system()
 if OS == 'Linux':
@@ -28,9 +42,16 @@ winId = 0
 # Path to main directory
 root  = os.path.dirname(os.path.abspath(__file__)) + '/'
 # Path to temporary folder
-pathToSlices = root + '.selecao_teste/'
+pathToTemp = root + '.temp/'
+# Register for file currently open
+fname = ''
+try:
+    os.mkdir(pathToTemp)
+except:
+    shutil.rmtree(pathToTemp)
+    os.mkdir(pathToTemp)
 # Path to cached point cloud
-pathToCachedPC = root + '.selected.txt'
+pathToCachedPC = pathToTemp + 'selected.txt'
 # Flag to detect changes of point cloud
 flagModification = False
 
@@ -46,16 +67,6 @@ def findViewer(window, indent):
                 # Save "viewer" window ID
                 winId = w.id
 
-# Display a dummy point cloud to start the interface
-def getPC():
-    # Changing global variables
-    global v
-
-    # Dummy point cloud
-    v = pptk.viewer([1,1,1])
-    v.set(bg_color = [1.0,1.0,1.0,0.0])
-    v.set(floor_color = [1.0,1.0,1.0,0.0])
-
 # Main window code
 class MainWindow(QtWidgets.QMainWindow):
     # INITIALIZATION FUNCTION
@@ -67,7 +78,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # Layout object
         self.mylayout = QtWidgets.QGridLayout(self.mywidget)
         self.setCentralWidget(self.mywidget)
-
         
         # Creating button objects
         self.buttonLoad    = QtWidgets.QPushButton("Carregar nuvem")
@@ -110,9 +120,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mylayout.addWidget(self.dialogBox      , 7, 0)
         self.setMinimumSize(1000,500)
         # Creating a dummy pptk window
-        getPC()
+        self.setPointCloud([1,1,1],[1])
+
+
+    def setPointCloud(self,pcVector,filter):
+        global v
+        # Filter z data to exclude outliers and help colouring
+        bxplt = plt.boxplot(filter)
+        m1 = bxplt['whiskers'][0]._y[0] # Minimum value of the minimum range
+        M2 = bxplt['whiskers'][1]._y[1] # Maximum value of the maximum range
+
+        v = pptk.viewer(pcVector,filter)
+        v.color_map('jet',scale=[m1,M2])
+        # v.set(bg_color = [1.0,1.0,1.0,0.0])
+        # v.set(floor_color = [1.0,1.0,1.0,0.0])
         self.embedPC()
-    
 
     # FUNCTION: Embed point cloud
     def embedPC(self):
@@ -120,8 +142,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if OS == 'Windows':
             global winId
             winId = win32gui.FindWindowEx(0, 0, None, "viewer")
-            # winId = 65932
-            # winId = win32gui.FindWindowEx(0)
         elif OS == 'Linux':
             self.xlib = Display().screen().root
             findViewer(self.xlib, '-')
@@ -132,18 +152,17 @@ class MainWindow(QtWidgets.QMainWindow):
         # Setting container to layout
         self.mylayout.addWidget(self.windowcontainer, 0, 1, 8, 5)
 
-
     # FUNCTION: Clear temporary files
     def clearTempFiles(self):
-        if os.path.exists(pathToSlices):
-            shutil.rmtree(pathToSlices)
+        if os.path.exists(pathToTemp):
+            shutil.rmtree(pathToTemp)
         if os.path.exists(pathToCachedPC):
             os.remove(pathToCachedPC)
 
     # CLICK: Load new point cloud
     def loadClick(self):
         # Modified global variables
-        global v, xyz
+        global v, xyz, fname
 
         # Status message
         self.dialogBox.clear()
@@ -169,28 +188,15 @@ class MainWindow(QtWidgets.QMainWindow):
         except:
             self.dialogBox.textCursor().insertText('Erro: arquivo inválido!\n')
             self.repaint()
-            getPC()
-            self.embedPC()
-            return
+            pass
 
         # Filter x, y and z coordinates
         xyz = xyz[:,:3]
         # Register z values (used to coloring)
         z = xyz[:,2]
 
-        # Filter z data to exclude outliers and help colouring
-        bxplt = plt.boxplot(z)
-        m1 = bxplt['whiskers'][0]._y[0] # Minimum value of the minimum range
-        M2 = bxplt['whiskers'][1]._y[1] # Maximum value of the maximum range
-        # plt.show() # displays boxplot
-
         # Load point cloud to pptk viewer referencing z axis to colors
-        v = pptk.viewer(xyz,z)
-        v.color_map('jet',scale=[m1,M2])
-        v.set(bg_color = [1.0,1.0,1.0,0.0])
-        v.set(floor_color = [1.0,1.0,1.0,0.0])
-        # Embed pptk
-        self.embedPC()
+        self.setPointCloud(xyz,z)
         self.buttonConfirm.setEnabled(True)
         self.buttonVolume.setEnabled(True)
     
@@ -198,7 +204,7 @@ class MainWindow(QtWidgets.QMainWindow):
     # CLICK: Confirm modification
     def confirmClick(self):
         # Modified global variables
-        global xyz, v, flagModification
+        global xyz, v, flagModification, counter, index, history, historyAfter, historyBefore
         
         # Status message
         self.dialogBox.clear()
@@ -222,21 +228,18 @@ class MainWindow(QtWidgets.QMainWindow):
         # Register z values (used to coloring)
         z = xyz[:,2]
 
-        # Filter z data to exclude outliers and help colouring
-        bxplt = plt.boxplot(z)
-        m1 = bxplt['whiskers'][0]._y[0] # Minimum value of the minimum range
-        M2 = bxplt['whiskers'][1]._y[1] # Maximum value of the maximum range
-
-        # Load point cloud to viewer referencing z axis to colors
-        v = pptk.viewer(xyz,z)
-        # Displays point cloud
-        v.color_map('jet',scale=[m1,M2])
-        v.set(bg_color=[1.0,1.0,1.0,0.0])
-        v.set(floor_color=[1.0,1.0,1.0,0.0])
-        self.embedPC()
+        # Embed pptk
+        self.setPointCloud(xyz,z)
         
-        # Save archive with selected points
-        np.savetxt(pathToCachedPC, xyz) # Transposta dos dados
+        # Manage action history
+        counter += 1
+        index = counter
+        history.append(index)
+        historyBefore = history
+
+        # Save current cloud in cache
+        np.savetxt(pathToCachedPC, xyz)
+        np.savetxt(pathToTemp+ID+counter.__str__(),xyz)
 
         # Set modification flag
         flagModification = True
@@ -274,15 +277,12 @@ class MainWindow(QtWidgets.QMainWindow):
         dados_z = dados[:,2]
         
         # Path to slices
-        if os.path.exists(pathToSlices):
-            shutil.rmtree(pathToSlices)
+        if os.path.exists(pathToTemp):
+            shutil.rmtree(pathToTemp)
         else:
             # Status message
             self.dialogBox.textCursor().insertText('Criando diretório temporário...\n')
             self.repaint()
-            
-        # Make temporary directory
-        os.mkdir(pathToSlices)
 
         # SEPARAR EM SLICES NO EIXO X COM INTERVALOR DE 1000
         intervalo = 1000 # se ficar menor não fecha o polígono
@@ -306,22 +306,22 @@ class MainWindow(QtWidgets.QMainWindow):
             plt.axis("off") # sem eixos
             
             # Plotar arquivo .txt de cada slice
-            fig.savefig(pathToSlices+'/fig_{}.png'.format(i))
+            fig.savefig(pathToTemp+'/fig_{}.png'.format(i))
             print(i) 
 
             points_slice = [(x,y,z) for x,y,z in zip(dados_x[i*intervalo: (i+1)*intervalo],dados_y[i*intervalo: (i+1)*intervalo],dados_z[i*intervalo: (i+1)*intervalo])]
-            np.savetxt(pathToSlices+'/points_fig_{}.txt'.format(i), points_slice, delimiter=' ') 
+            np.savetxt(pathToTemp+'/points_fig_{}.txt'.format(i), points_slice, delimiter=' ') 
 
             plt.close()
 
         # Identificar o numero de slices na path
-        filepaths = glob.glob(pathToSlices+ "*.png", recursive= True)
+        filepaths = glob.glob(pathToTemp+ "*.png", recursive= True)
         print(len(filepaths)) # Número de arquivos na path
 
         total = 0
 
         for i in range(len(filepaths)):
-            img = np.asarray(Image.open(pathToSlices + "fig_{}.png".format(i)).convert('L'))
+            img = np.asarray(Image.open(pathToTemp + "fig_{}.png".format(i)).convert('L'))
             img = 1 * (img < 255)
             m,n = img.shape
             total += img.sum() 
@@ -357,16 +357,63 @@ class MainWindow(QtWidgets.QMainWindow):
         self.repaint()
         flagModification = False
 
+
     # CLICK: Return to previous modification state
     def undoClick(self):
-        self.dialogBox.textCursor().insertText('Undo')
+        global index, historyAfter, historyBefore
+        # Manage action history
+        historyAfter.insert(0,historyBefore.pop())
+        if not historyBefore:
+            index = -1
+            nuvem = fname[0]
+            self.buttonUndo.setEnabled(False)
+        else:
+            index = historyBefore[-1]
+            nuvem = pathToTemp+ID+index.__str__()
+        try:
+            xyz = np.loadtxt(nuvem, delimiter= ' ')
+        except:
+            self.dialogBox.textCursor().insertText('Erro: arquivo inválido!\n')
+            self.repaint()
+            pass
+
+        # Filter x, y and z coordinates
+        xyz = xyz[:,:3]
+        # Register z values (used to coloring)
+        z = xyz[:,2]
+        # Save current cloud in cache
+        np.savetxt(pathToCachedPC, xyz)
+
+        # Load point cloud to pptk viewer referencing z axis to colors
+        self.setPointCloud(xyz,z)
         self.repaint()
         self.buttonRedo.setEnabled(True)
 
 
     # CLICK: Return to later modification state after Undo
     def redoClick(self):
-        self.dialogBox.textCursor().insertText('Redo')
+        global index, historyAfter, historyBefore
+        historyBefore.append(historyAfter.pop(0))
+        index = historyBefore[-1]
+        nuvem = pathToTemp+ID+index.__str__()
+        try:
+            xyz = np.loadtxt(nuvem, delimiter= ' ')
+        except:
+            self.dialogBox.textCursor().insertText('Erro: arquivo inválido!\n')
+            self.repaint()
+            pass
+
+        # Filter x, y and z coordinates
+        xyz = xyz[:,:3]
+        # Register z values (used to coloring)
+        z = xyz[:,2]
+        # Save current cloud in cache
+        np.savetxt(pathToCachedPC, xyz)
+        # Load point cloud to pptk viewer referencing z axis to colors
+        self.setPointCloud(xyz,z)
+        if not historyAfter:
+            self.buttonRedo.setEnabled(False)
+        self.buttonUndo.setEnabled(True)
         self.repaint()
 
 
