@@ -1,14 +1,14 @@
-#!/usr/bin/python3.8
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import alphashape
 import platform
+import requests
 import random
-import string
 import shutil
-import pptk
+import string
 import glob
+import pptk
 import sys
 import os
 from   PyQt5 import QtWidgets, QtGui, QtCore
@@ -45,10 +45,10 @@ root  = os.path.dirname(os.path.abspath(__file__)) + '/'
 pathToTemp = root + '.temp/'
 # Register for file currently open
 fname = ''
-try:
-    os.mkdir(pathToTemp)
-except:
+if os.path.exists(pathToTemp):
     shutil.rmtree(pathToTemp)
+    os.mkdir(pathToTemp)
+else:
     os.mkdir(pathToTemp)
 # Path to cached point cloud
 pathToCachedPC = pathToTemp + 'selected.txt'
@@ -66,6 +66,7 @@ def findViewer(window, indent):
             if ("viewer" in w.get_wm_class()):
                 # Save "viewer" window ID
                 winId = w.id
+                pass
 
 # Main window code
 class MainWindow(QtWidgets.QMainWindow):
@@ -135,6 +136,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # v.set(bg_color = [1.0,1.0,1.0,0.0])
         # v.set(floor_color = [1.0,1.0,1.0,0.0])
         self.embedPC()
+        pass
 
     # FUNCTION: Embed point cloud
     def embedPC(self):
@@ -353,9 +355,10 @@ class MainWindow(QtWidgets.QMainWindow):
         text = open(pathToCachedPC,'r').read()
         file.write(text)
         file.close()
+        flagModification = False
+        r = requests.post()
         self.dialogBox.textCursor().insertText('Nuvem de pontos salva em:\n'+fname[0]+'\n')
         self.repaint()
-        flagModification = False
 
 
     # CLICK: Return to previous modification state
