@@ -1,37 +1,31 @@
+import subprocess
+import time
+import Xlib
 import sys
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtWidgets, QtCore, QtGui
+from Xlib.display import Display
 
+class MainWindow(QtWidgets.QMainWindow):
+    def __init__(self):
+        super(MainWindow, self).__init__()
+        exePath = "gnome-terminal"
+        subprocess.Popen(exePath)
+        xlib = Display().screen().root
+        # lid = len(xlib.query_tree().children)
+        # for i in range(0,lid): print(i), print(xlib.query_tree().children[i].get_wm_class())
+        # xlib.query_tree().children[i].id
+        hwnd = 35651585
+        window = QtGui.QWindow.fromWinId(hwnd)
+        self.createWindowContainer(window,self)
+        self.setGeometry(500, 500, 450, 400)
+        self.setWindowTitle('File dialog')
+        self.show()
 
-class EmbTerminal(QtWidgets.QWidget):
-    def __init__(self, parent=None):
-        super(EmbTerminal, self).__init__(parent)
-        self.process = QtCore.QProcess(self)
-        self.terminal = QtWidgets.QWidget(self)
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.terminal)
-        # Works also with urxvt:
-        self.process.start('gnome-terminal',['-embed', str(int(self.winId()))])
-        self.setFixedSize(640, 480)
-
-
-class mainWindow(QtWidgets.QMainWindow):
-    def __init__(self, parent=None):
-        super(mainWindow, self).__init__(parent)
-
-        central_widget = QtWidgets.QWidget()
-        lay = QtWidgets.QVBoxLayout(central_widget)
-        self.setCentralWidget(central_widget)
-
-        tab_widget = QtWidgets.QTabWidget()
-        lay.addWidget(tab_widget)
-
-        tab_widget.addTab(EmbTerminal(), "EmbTerminal")
-        tab_widget.addTab(QtWidgets.QTextEdit(), "QTextEdit")
-        tab_widget.addTab(QtWidgets.QMdiArea(), "QMdiArea")
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
-    main = mainWindow()
-    main.show()
+    app.setStyle("fusion")
+    form = MainWindow()
+    #form.setGeometry(100, 100, 600, 500)
+    form.show()
+
     sys.exit(app.exec_())
