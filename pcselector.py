@@ -14,6 +14,7 @@ import os
 from   PyQt5 import QtWidgets, QtGui, QtCore
 from   descartes import PolygonPatch
 from   PIL import Image
+import time
 
 # Random vector to create program ID
 randIdVec = string.ascii_letters+'0123456789'
@@ -56,17 +57,24 @@ pathToCachedPC = pathToTemp + 'selected.txt'
 flagModification = False
 
 # Search for a window called "viewer"
-def findViewer(window, indent):
+def findViewer(list):
     # Modified global variables
     global winId
-    children = window.query_tree().children
+    children = list.query_tree().children
+    q = 0
     for w in children:
-        findViewer(w, indent+'-')
-        if w.get_wm_class() is not None:
-            if ("viewer" in w.get_wm_class()):
-                # Save "viewer" window ID
-                winId = w.id
-                pass
+        subchildren = w.query_tree().children
+        for x in subchildren:
+            if x.get_wm_class() is not None:
+                if ("viewer" in x.get_wm_class()):
+                    # print(q)
+                    # print(w.id)
+                    print(x.id)
+                    # Save "viewer" window ID
+                    winId = x.id
+                    pass
+        q += 1
+    pass
 
 # Main window code
 class MainWindow(QtWidgets.QMainWindow):
@@ -145,13 +153,16 @@ class MainWindow(QtWidgets.QMainWindow):
             global winId
             winId = win32gui.FindWindowEx(0, 0, None, "viewer")
         elif OS == 'Linux':
-            self.xlib = Display().screen().root
-            findViewer(self.xlib, '-')
+            self.xlibList = Display().screen().root
+            findViewer(self.xlibList)
         # Creating a window object
         self.window = QtGui.QWindow.fromWinId(winId)
+        self.window.setFlags(QtCore.Qt.FramelessWindowHint)
+        # self.window.setFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.X11BypassWindowManagerHint)
         # Defining container object
         self.windowcontainer = self.createWindowContainer(self.window, self.mywidget)
         # Setting container to layout
+        time.sleep(.1)
         self.mylayout.addWidget(self.windowcontainer, 0, 1, 8, 5)
 
     # FUNCTION: Clear temporary files
