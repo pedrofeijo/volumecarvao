@@ -7,6 +7,7 @@ import requests
 import random
 import shutil
 import string
+import PyQt5
 import glob
 import pptk
 import sys
