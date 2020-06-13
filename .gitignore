@@ -1,2 +1,4 @@
-*.env
+.env/*
 *.vscode
+.selected.txt
+.selecao_teste/*
