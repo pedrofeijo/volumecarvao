@@ -10,6 +10,7 @@ import shutil
 import string
 import PyQt5
 import glob
+import json
 import pptk
 import sys
 import os
@@ -35,7 +36,9 @@ historyAfter =[]
 # Detect operational system
 OS = platform.system()
 if OS == 'Linux':
-    from Xlib.display import Display
+    # from Xlib.display import Display
+    import Xlib
+    import Xlib.display
 elif OS == 'Windows':
     import win32gui
 
@@ -67,6 +70,13 @@ def findViewer(list):
     for w in children:
         subchildren = w.query_tree().children
         for x in subchildren:
+            display = Xlib.display.Display()
+            print(x.get_wm_class())
+            print(x.get_wm_name())
+            print(x.get_full_property(display.intern_atom('_NET_WM_PID'), Xlib.X.AnyPropertyType))
+            print(x.get_full_property(display.intern_atom('_NET_WM_NAME'), Xlib.X.AnyPropertyType))
+            print(x.get_full_property(display.intern_atom('_NET_WM_VISIBLE_NAME'), Xlib.X.AnyPropertyType))
+            print(x.get_wm_class())
             if x.get_wm_class() is not None:
                 if ("viewer" in x.get_wm_class()):
                     # print(q)
@@ -87,10 +97,51 @@ class MainWindow(QtWidgets.QMainWindow):
         # Widget object
         self.mywidget = QtWidgets.QWidget()
         # Layout object
-        self.mylayout = QtWidgets.QGridLayout(self.mywidget)
+        self.mylayout    = QtWidgets.QGridLayout(self.mywidget)
+        self.stockWidget = QtWidgets.QWidget()
+        self.stockLayout = QtWidgets.QGridLayout(self.stockWidget)
+        
+        self.viewWidget  = QtWidgets.QWidget()
+        self.viewLayout  = QtWidgets.QGridLayout(self.viewWidget)
         self.setCentralWidget(self.mywidget)
+
+
+        self.stockWidget.setStyleSheet("background-color:#ADD8E6;")
+        self.viewWidget.setStyleSheet("background-color:#ADD8E6;")
         
         # Creating button objects
+        self.buttonStock1A = QtWidgets.QPushButton("1A")
+        self.buttonStock1B = QtWidgets.QPushButton("1B")
+        self.buttonStock1  = QtWidgets.QPushButton("1")
+        self.buttonStock2A = QtWidgets.QPushButton("2A")
+        self.buttonStock2B = QtWidgets.QPushButton("2B")
+        self.buttonStock2C = QtWidgets.QPushButton("2C")
+        self.buttonStock2D = QtWidgets.QPushButton("2D")
+        self.buttonStock2  = QtWidgets.QPushButton("2")
+        self.buttonStock3A = QtWidgets.QPushButton("3A")
+        self.buttonStock3B = QtWidgets.QPushButton("3B")
+        self.buttonStock3  = QtWidgets.QPushButton("3")
+
+        self.buttonTop   = QtWidgets.QPushButton("Topo")
+        self.buttonSide  = QtWidgets.QPushButton("Lado")
+        self.buttonFront = QtWidgets.QPushButton("Frente")
+
+        self.stockLayout.addWidget(self.buttonStock1A, 0, 0, 1, 2)
+        self.stockLayout.addWidget(self.buttonStock1B, 0, 2, 1, 2)
+        self.stockLayout.addWidget(self.buttonStock1 , 0, 4, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock2A, 1, 0, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock2B, 1, 1, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock2C, 1, 2, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock2D, 1, 3, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock2 , 1, 4, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock3A, 2, 0, 1, 2)
+        self.stockLayout.addWidget(self.buttonStock3B, 2, 2, 1, 2)
+        self.stockLayout.addWidget(self.buttonStock3 , 2, 4, 1, 1)
+
+        self.viewLayout.addWidget(self.buttonTop  , 0, 0)
+        self.viewLayout.addWidget(self.buttonSide , 0, 1)
+        self.viewLayout.addWidget(self.buttonFront, 0, 2)
+
         self.buttonLoad    = QtWidgets.QPushButton("Carregar nuvem")
         self.buttonConfirm = QtWidgets.QPushButton("Confirmar seleção")
         self.buttonVolume  = QtWidgets.QPushButton("Calcular volume")
@@ -107,6 +158,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.buttonRedo.setEnabled(False)
         
         # Defining button functions
+        self.buttonTop.clicked.connect(self.topClick)
+        self.buttonFront.clicked.connect(self.frontClick)
+        self.buttonSide.clicked.connect(self.sideClick)
+
         self.buttonLoad.clicked.connect(self.loadClick)
         self.buttonConfirm.clicked.connect(self.confirmClick)
         self.buttonVolume.clicked.connect(self.calcClick)
@@ -121,14 +176,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Layout setup (except pptk container)
         self.mylayout.setColumnStretch(1, 3)
-        self.mylayout.addWidget(self.buttonLoad     , 0, 0)
-        self.mylayout.addWidget(self.buttonConfirm  , 1, 0)
-        self.mylayout.addWidget(self.buttonVolume   , 2, 0)
-        self.mylayout.addWidget(self.buttonSave     , 3, 0)
-        self.mylayout.addWidget(self.buttonUndo     , 4, 0)
-        self.mylayout.addWidget(self.buttonRedo     , 5, 0)
-        self.mylayout.addWidget(self.buttonClose    , 6, 0)
-        self.mylayout.addWidget(self.dialogBox      , 7, 0)
+        # self.mylayout.addLayout(self.stockLayout    , 0, 0)
+        self.mylayout.addWidget(self.stockWidget    , 0, 0)
+        self.mylayout.addWidget(self.viewWidget     , 1, 0)
+        self.mylayout.addWidget(self.buttonLoad     , 2, 0)
+        self.mylayout.addWidget(self.buttonConfirm  , 3, 0)
+        self.mylayout.addWidget(self.buttonVolume   , 4, 0)
+        self.mylayout.addWidget(self.buttonSave     , 5, 0)
+        self.mylayout.addWidget(self.buttonUndo     , 6, 0)
+        self.mylayout.addWidget(self.buttonRedo     , 7, 0)
+        self.mylayout.addWidget(self.buttonClose    , 8, 0)
+        self.mylayout.addWidget(self.dialogBox      , 9, 0)
         self.setMinimumSize(1000,500)
         # Creating a dummy pptk window
         self.setPointCloud([1,1,1],[1])
@@ -155,7 +213,7 @@ class MainWindow(QtWidgets.QMainWindow):
             global winId
             winId = win32gui.FindWindowEx(0, 0, None, "viewer")
         elif OS == 'Linux':
-            self.xlibList = Display().screen().root
+            self.xlibList = Xlib.display.Display().screen().root
             findViewer(self.xlibList)
         # Creating a window object
         self.window = QtGui.QWindow.fromWinId(winId)
@@ -165,7 +223,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.windowcontainer = self.createWindowContainer(self.window, self.mywidget)
         # Setting container to layout
         time.sleep(.1)
-        self.mylayout.addWidget(self.windowcontainer, 0, 1, 8, 5)
+        self.mylayout.addWidget(self.windowcontainer, 0, 1, 10, 5)
 
     # FUNCTION: Clear temporary files
     def clearTempFiles(self):
@@ -173,6 +231,18 @@ class MainWindow(QtWidgets.QMainWindow):
             shutil.rmtree(pathToTemp)
         if os.path.exists(pathToCachedPC):
             os.remove(pathToCachedPC)
+
+    def topClick(self):
+        global v
+        v.set(phi = 0, theta = np.pi/2)
+
+    def frontClick(self):
+        global v
+        v.set(phi = 0, theta = 0)
+
+    def sideClick(self):
+        global v
+        v.set(phi = np.pi/2, theta = 0)
 
     # CLICK: Load new point cloud
     def loadClick(self):
@@ -185,7 +255,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.repaint()
 
         # Open a dialog box
-        fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", root, "Arquivos de nuvem de pontos (*.txt)")
+        # fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", root, "Arquivos de nuvem de pontos (*.txt)")
+        fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", root, "Arquivos de nuvem de pontos (*.pcd)")
         # If nothing is selected: return
         if fname ==('',''):
             self.dialogBox.textCursor().insertText('Nenhuma nuvem escolhida!\n')
@@ -193,6 +264,9 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         # Get file name
         nuvem = fname[0]
+        os.system('/home/adriano/git/drone-server/extconverter '+nuvem)
+        nuvem = '/home/adriano/git/volumecarvao/'+nuvem.split('/')[-1]
+        nuvem = nuvem.split('.')[0]+'.txt'
         # Status message
         self.dialogBox.clear()
         self.dialogBox.textCursor().insertText('Arquivo: ' + nuvem + '.\n')
@@ -359,6 +433,8 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.dialogBox.textCursor().insertText('Salvando nuvem de pontos...\n')
         self.repaint()
+
+        ## Save on HD
         fname = QtWidgets.QFileDialog.getSaveFileName(self, 'Salvar nuvem de pontos', root, "Arquivos de nuvem de pontos (*.txt)")
         if fname == ('',''):
             self.dialogBox.textCursor().insertText('Operação "salvar" cancelada!\n')
@@ -368,9 +444,17 @@ class MainWindow(QtWidgets.QMainWindow):
         text = open(pathToCachedPC,'r').read()
         file.write(text)
         file.close()
-        flagModification = False
-        r = requests.post()
         self.dialogBox.textCursor().insertText('Nuvem de pontos salva em:\n'+fname[0]+'\n')
+
+        ## Save on database
+        # name = fname[0].split('/')[-1]
+        # md5hash = os.popen('md5sum '+name).read().split(' ')[0]
+        # headers = {'md5hash':md5hash,'user':'1'}
+        # files = {'file': (name, open(name, 'rb'), 'text/plain')}
+        # r = requests.post('http://localhost:8503/pointCloudData', headers=headers, files=files)
+        # flagModification = False
+        # self.dialogBox.textCursor().insertText('Nuvem de pontos salva em:\n'+r.text+'\n')
+
         self.repaint()
 
 
@@ -448,10 +532,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.saveClick()
             else:
                 self.clearTempFiles()
+                os.system('killall viewer')
                 event.accept()
              
         else:
             self.clearTempFiles()
+            os.system('killall viewer')
             event.accept()
 
 
