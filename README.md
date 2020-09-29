@@ -13,4 +13,4 @@ $ source .env/bin/activate
 $ pip install -r requirements.txt
 
 ### Run archive main.py
-$ main.py
+$ mainh.py
