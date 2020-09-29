@@ -538,7 +538,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if os.path.exists(nuvemTxt):
             print("Cloud " + nuvemPcd.split('/')[-1] + " loaded from cache!")
         else:
-            os.system('/home/adriano/git/drone-server/extconverter '+nuvemPcd+' -D '+pathToTemp)
+            os.system('extconverter '+nuvemPcd+' -D '+pathToTemp)
 
         # Status message
         self.dialogBox.clear()
@@ -611,7 +611,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 if os.path.exists(cropTxt):
                     print("Crop " + crop + " loaded from cache!")
                 else:
-                    os.system('/home/adriano/git/drone-server/extconverter '+os.path.join(cropPath,crop)+' -D '+pathToTemp)
+                    os.system('extconverter '+os.path.join(cropPath,crop)+' -D '+pathToTemp)
                 if "_1.pcd" in crop:
                     self.buttonStock1.setStyleSheet( "color: black; background: #373f49;")
                     self.buttonStock1A.setStyleSheet("color: black; background: #373f49;")
