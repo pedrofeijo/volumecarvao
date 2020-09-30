@@ -323,11 +323,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mylayout.addWidget(self.buttonsWidget, 3, 0)
         self.setMinimumSize(1000,500)
         # Creating a dummy pptk window
-        self.setPointCloud([1,1,1],[1])
+        self.setPointCloud([1,1,1],[1], [])
 
     def loadPointCloud(self, nuvemTxt):
         # Try to load the txt point cloud into a numpy float matrix.
-        global xyz, z
+        global xyz, z, view
         try:
             xyz = np.loadtxt(nuvemTxt, delimiter= ' ')
 
@@ -337,24 +337,24 @@ class MainWindow(QtWidgets.QMainWindow):
             z = xyz[:,2]
 
             # Load point cloud to pptk viewer referencing z axis to colors
-            self.setPointCloud(xyz,z)
+            self.setPointCloud(xyz, z, view)
         except:
             self.dialogBox.textCursor().insertText('Erro: arquivo inválido!\n')
             self.repaint()
 
-    def setPointCloud(self, pcVector, filter):
+    def setPointCloud(self, pcVector, filter, newView):
         global view
-        # Filter z data to exclude outliers and help colouring
-        bxplt = plt.boxplot(filter)
-        m1 = bxplt['whiskers'][0]._y[0] # Minimum value of the minimum range
-        M2 = bxplt['whiskers'][1]._y[1] # Maximum value of the maximum range
-
-        view = pptk.viewer(pcVector,filter)
-        view.color_map('jet',scale=[m1,M2])
-        # view.set(bg_color = [1.0,1.0,1.0,0.0])
-        # view.set(floor_color = [1.0,1.0,1.0,0.0])
-        self.embedPC()
-        pass
+        if newView:
+            # Filter z data to exclude outliers and help colouring
+            bxplt = plt.boxplot(filter)
+            m1 = bxplt['whiskers'][0]._y[0] # Minimum value of the minimum range
+            M2 = bxplt['whiskers'][1]._y[1] # Maximum value of the maximum range
+            newView.clear()
+            newView.load(pcVector, filter)
+            newView.color_map('jet',scale=[m1, M2])
+        else:
+            view = pptk.viewer(pcVector)
+            self.embedPC()
 
     # FUNCTION: Embed point cloud
     def embedPC(self):
@@ -562,7 +562,7 @@ class MainWindow(QtWidgets.QMainWindow):
         z = xyz[:,2]
 
         # Load point cloud to pptk viewer referencing z axis to colors
-        self.setPointCloud(xyz,z)
+        self.setPointCloud(xyz, z, view)
         
         flagModification = False
         historyBefore = []
@@ -672,7 +672,7 @@ class MainWindow(QtWidgets.QMainWindow):
         z = xyz[:,2]
 
         # Embed pptk
-        self.setPointCloud(xyz,z)
+        self.setPointCloud(xyz, z, view)
         
         # Manage action history
         counter += 1
@@ -852,7 +852,7 @@ class MainWindow(QtWidgets.QMainWindow):
         np.savetxt(pathToCachedPC, xyz)
 
         # Load point cloud to pptk viewer referencing z axis to colors
-        self.setPointCloud(xyz,z)
+        self.setPointCloud(xyz, z, view)
         self.repaint()
         self.buttonRedo.setStyleSheet("color: black; background: #373f49;")
         self.buttonRedo.setEnabled(True)
@@ -878,7 +878,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Save current cloud in cache
         np.savetxt(pathToCachedPC, xyz)
         # Load point cloud to pptk viewer referencing z axis to colors
-        self.setPointCloud(xyz,z)
+        self.setPointCloud(xyz, z, view)
         if not historyAfter:
             self.buttonRedo.setStyleSheet("color: #373f49; background: #373f49;")
             self.buttonRedo.setEnabled(False)
