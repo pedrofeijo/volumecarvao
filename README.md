@@ -15,6 +15,8 @@ source .env/bin/activate
 pip install -r requirements.txt
 # Make script executable
 chmod +x pcselector.py
+# Install qt dependencies
+sudo apt install libtbb-dev patchelf libeigen3-dev qt5-default
 ```
 ## Running the script on Ubuntu 16.04
 Just run the script as an executable:
