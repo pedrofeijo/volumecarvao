@@ -292,17 +292,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dialogBox.setReadOnly(True)
 
         # Layout setup (except pptk container)
-        self.stockLayout.addWidget(self.buttonStock1A, 0, 0, 1, 2)
-        self.stockLayout.addWidget(self.buttonStock1B, 0, 2, 1, 2)
-        self.stockLayout.addWidget(self.buttonStock1 , 0, 4, 1, 1)
-        self.stockLayout.addWidget(self.buttonStock2A, 1, 0, 1, 1)
-        self.stockLayout.addWidget(self.buttonStock2B, 1, 1, 1, 1)
-        self.stockLayout.addWidget(self.buttonStock2C, 1, 2, 1, 1)
-        self.stockLayout.addWidget(self.buttonStock2D, 1, 3, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock3B, 0, 0, 1, 2)
+        self.stockLayout.addWidget(self.buttonStock3A, 0, 2, 1, 2)
+        self.stockLayout.addWidget(self.buttonStock3 , 0, 4, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock2D, 1, 0, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock2C, 1, 1, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock2B, 1, 2, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock2A, 1, 3, 1, 1)
         self.stockLayout.addWidget(self.buttonStock2 , 1, 4, 1, 1)
-        self.stockLayout.addWidget(self.buttonStock3A, 2, 0, 1, 2)
-        self.stockLayout.addWidget(self.buttonStock3B, 2, 2, 1, 2)
-        self.stockLayout.addWidget(self.buttonStock3 , 2, 4, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock1B, 2, 0, 1, 2)
+        self.stockLayout.addWidget(self.buttonStock1A, 2, 2, 1, 2)
+        self.stockLayout.addWidget(self.buttonStock1 , 2, 4, 1, 1)
 
         self.viewLayout.addWidget(self.buttonTop  , 0, 0)
         self.viewLayout.addWidget(self.buttonSide , 0, 1)
@@ -637,7 +637,17 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.buttonStock3.setEnabled(True)
                     self.buttonStock3A.setEnabled(True)
                     self.buttonStock3B.setEnabled(True)
-                
+        
+        ### Ajustar título da janela pra ser compatível com o sub-pilha alvo
+        # mission = fname[0]).split('/missao')[1][:4]
+        # subpile = fname[0][-6:][:-4]
+        mission = '0001'
+        subpile = '3B'
+        if subpile in ['1A', '1B', '2A', '2B', '2C', '2D', '3A', '3B']:
+            self.setWindowTitle('PC Selector: Missão ' + mission + ' Pilha ' + subpile)
+        else:
+            self.setWindowTitle('PC Selector: Missão ' + mission)
+            
         self.buttonConfirm.setStyleSheet("color: black; background: #373f49;")
         self.buttonVolume.setStyleSheet("color: black; background: #373f49;")
         self.buttonConfirm.setEnabled(True)
@@ -927,7 +937,7 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("fusion")
     form = MainWindow()
-    form.setWindowTitle('Editor de Nuvem de Pontos')
+    form.setWindowTitle('PC Selector')
     #form.setGeometry(100, 100, 600, 500)
     form.show()
 
