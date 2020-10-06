@@ -292,17 +292,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dialogBox.setReadOnly(True)
 
         # Layout setup (except pptk container)
-        self.stockLayout.addWidget(self.buttonStock1A, 0, 0, 1, 2)
-        self.stockLayout.addWidget(self.buttonStock1B, 0, 2, 1, 2)
-        self.stockLayout.addWidget(self.buttonStock1 , 0, 4, 1, 1)
-        self.stockLayout.addWidget(self.buttonStock2A, 1, 0, 1, 1)
-        self.stockLayout.addWidget(self.buttonStock2B, 1, 1, 1, 1)
-        self.stockLayout.addWidget(self.buttonStock2C, 1, 2, 1, 1)
-        self.stockLayout.addWidget(self.buttonStock2D, 1, 3, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock3B, 0, 0, 1, 2)
+        self.stockLayout.addWidget(self.buttonStock3A, 0, 2, 1, 2)
+        self.stockLayout.addWidget(self.buttonStock3 , 0, 4, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock2D, 1, 0, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock2C, 1, 1, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock2B, 1, 2, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock2A, 1, 3, 1, 1)
         self.stockLayout.addWidget(self.buttonStock2 , 1, 4, 1, 1)
-        self.stockLayout.addWidget(self.buttonStock3A, 2, 0, 1, 2)
-        self.stockLayout.addWidget(self.buttonStock3B, 2, 2, 1, 2)
-        self.stockLayout.addWidget(self.buttonStock3 , 2, 4, 1, 1)
+        self.stockLayout.addWidget(self.buttonStock1B, 2, 0, 1, 2)
+        self.stockLayout.addWidget(self.buttonStock1A, 2, 2, 1, 2)
+        self.stockLayout.addWidget(self.buttonStock1 , 2, 4, 1, 1)
 
         self.viewLayout.addWidget(self.buttonTop  , 0, 0)
         self.viewLayout.addWidget(self.buttonSide , 0, 1)
@@ -323,11 +323,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mylayout.addWidget(self.buttonsWidget, 3, 0)
         self.setMinimumSize(1000,500)
         # Creating a dummy pptk window
-        self.setPointCloud([1,1,1],[1])
+        self.setPointCloud([1,1,1],[1], [])
 
     def loadPointCloud(self, nuvemTxt):
         # Try to load the txt point cloud into a numpy float matrix.
-        global xyz, z
+        global xyz, z, view
         try:
             xyz = np.loadtxt(nuvemTxt, delimiter= ' ')
 
@@ -337,24 +337,24 @@ class MainWindow(QtWidgets.QMainWindow):
             z = xyz[:,2]
 
             # Load point cloud to pptk viewer referencing z axis to colors
-            self.setPointCloud(xyz,z)
+            self.setPointCloud(xyz, z, view)
         except:
             self.dialogBox.textCursor().insertText('Erro: arquivo inválido!\n')
             self.repaint()
 
-    def setPointCloud(self, pcVector, filter):
+    def setPointCloud(self, pcVector, filter, newView):
         global view
-        # Filter z data to exclude outliers and help colouring
-        bxplt = plt.boxplot(filter)
-        m1 = bxplt['whiskers'][0]._y[0] # Minimum value of the minimum range
-        M2 = bxplt['whiskers'][1]._y[1] # Maximum value of the maximum range
-
-        view = pptk.viewer(pcVector,filter)
-        view.color_map('jet',scale=[m1,M2])
-        # view.set(bg_color = [1.0,1.0,1.0,0.0])
-        # view.set(floor_color = [1.0,1.0,1.0,0.0])
-        self.embedPC()
-        pass
+        if newView:
+            # Filter z data to exclude outliers and help colouring
+            bxplt = plt.boxplot(filter)
+            m1 = bxplt['whiskers'][0]._y[0] # Minimum value of the minimum range
+            M2 = bxplt['whiskers'][1]._y[1] # Maximum value of the maximum range
+            newView.clear()
+            newView.load(pcVector, filter)
+            newView.color_map('jet',scale=[m1, M2])
+        else:
+            view = pptk.viewer(pcVector)
+            self.embedPC()
 
     # FUNCTION: Embed point cloud
     def embedPC(self):
@@ -538,7 +538,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if os.path.exists(nuvemTxt):
             print("Cloud " + nuvemPcd.split('/')[-1] + " loaded from cache!")
         else:
-            os.system('/home/adriano/git/drone-server/extconverter '+nuvemPcd+' -D '+pathToTemp)
+            os.system('extconverter '+nuvemPcd+' -D '+pathToTemp)
 
         # Status message
         self.dialogBox.clear()
@@ -562,7 +562,7 @@ class MainWindow(QtWidgets.QMainWindow):
         z = xyz[:,2]
 
         # Load point cloud to pptk viewer referencing z axis to colors
-        self.setPointCloud(xyz,z)
+        self.setPointCloud(xyz, z, view)
         
         flagModification = False
         historyBefore = []
@@ -611,7 +611,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 if os.path.exists(cropTxt):
                     print("Crop " + crop + " loaded from cache!")
                 else:
-                    os.system('/home/adriano/git/drone-server/extconverter '+os.path.join(cropPath,crop)+' -D '+pathToTemp)
+                    os.system('extconverter '+os.path.join(cropPath,crop)+' -D '+pathToTemp)
                 if "_1.pcd" in crop:
                     self.buttonStock1.setStyleSheet( "color: black; background: #373f49;")
                     self.buttonStock1A.setStyleSheet("color: black; background: #373f49;")
@@ -637,7 +637,17 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.buttonStock3.setEnabled(True)
                     self.buttonStock3A.setEnabled(True)
                     self.buttonStock3B.setEnabled(True)
-                
+        
+        ### Ajustar título da janela pra ser compatível com o sub-pilha alvo
+        # mission = fname[0]).split('/missao')[1][:4]
+        # subpile = fname[0][-6:][:-4]
+        mission = '0001'
+        subpile = '3B'
+        if subpile in ['1A', '1B', '2A', '2B', '2C', '2D', '3A', '3B']:
+            self.setWindowTitle('PC Selector: Missão ' + mission + ' Pilha ' + subpile)
+        else:
+            self.setWindowTitle('PC Selector: Missão ' + mission)
+            
         self.buttonConfirm.setStyleSheet("color: black; background: #373f49;")
         self.buttonVolume.setStyleSheet("color: black; background: #373f49;")
         self.buttonConfirm.setEnabled(True)
@@ -672,7 +682,7 @@ class MainWindow(QtWidgets.QMainWindow):
         z = xyz[:,2]
 
         # Embed pptk
-        self.setPointCloud(xyz,z)
+        self.setPointCloud(xyz, z, view)
         
         # Manage action history
         counter += 1
@@ -852,7 +862,7 @@ class MainWindow(QtWidgets.QMainWindow):
         np.savetxt(pathToCachedPC, xyz)
 
         # Load point cloud to pptk viewer referencing z axis to colors
-        self.setPointCloud(xyz,z)
+        self.setPointCloud(xyz, z, view)
         self.repaint()
         self.buttonRedo.setStyleSheet("color: black; background: #373f49;")
         self.buttonRedo.setEnabled(True)
@@ -878,7 +888,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Save current cloud in cache
         np.savetxt(pathToCachedPC, xyz)
         # Load point cloud to pptk viewer referencing z axis to colors
-        self.setPointCloud(xyz,z)
+        self.setPointCloud(xyz, z, view)
         if not historyAfter:
             self.buttonRedo.setStyleSheet("color: #373f49; background: #373f49;")
             self.buttonRedo.setEnabled(False)
@@ -927,7 +937,7 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("fusion")
     form = MainWindow()
-    form.setWindowTitle('Editor de Nuvem de Pontos')
+    form.setWindowTitle('PC Selector')
     #form.setGeometry(100, 100, 600, 500)
     form.show()
 
