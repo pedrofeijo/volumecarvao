@@ -36,17 +36,19 @@ historyAfter =[]
 # Detect operational system
 OS = platform.system()
 if OS == 'Linux':
-    # from Xlib.display import Display
     import Xlib
     import Xlib.display
-elif OS == 'Windows':
-    import win32gui
+else:
+    print("This application is Linux exclusive")
+    sys.exit()
 
 # GLOBAL VARIABLES
 # Id of pptk window for embeding procedure
 winId = 0
 # Path to main directory
-root  = os.path.dirname(os.path.abspath(__file__)) + '/'
+applicationRoot  = os.path.dirname(os.path.abspath(__file__)) + '/'
+# Browser root
+browserRoot = '/home/adriano/git/drone-server/files/'
 # Path to temporary folder
 pathToTemp = '/var/tmp/trms/'
 # Register for file currently open
@@ -71,18 +73,8 @@ def findViewer(list):
         subchildren = w.query_tree().children
         for xwin in subchildren:
             display = Xlib.display.Display()
-            # print(xwin.get_wm_class())
-            # print(xwin.get_wm_name())
-            # print(xwin.get_full_property(display.intern_atom('_NET_WM_PID'), Xlib.X.AnyPropertyType))
-            # print(xwin.get_full_property(display.intern_atom('_NET_WM_NAME'), Xlib.X.AnyPropertyType))
-            # print(xwin.get_full_property(display.intern_atom('_NET_WM_VISIBLE_NAME'), Xlib.X.AnyPropertyType))
-            # print(xwin.get_wm_class())
             if xwin.get_wm_class() is not None:
                 if ("viewer" in xwin.get_wm_class()):
-                    # print(q)
-                    # print(w.id)
-                    # print(xwin.id)
-                    # Save "viewer" window id
                     winId = xwin.id
         q += 1
     pass
@@ -151,24 +143,29 @@ def currentStockManager(self, button, currentStockSelection):
         self.buttonStock3A.setStyleSheet("color: #373f49; background: #373f49;")
         self.buttonStock3B.setStyleSheet("color: #373f49; background: #373f49;")
     if currentStockSelection == self.currentStock:
-        self.currentStock = '00000000'
+        self.currentStock = '0'
         self.loadPointCloud(pcTemp[0])
         return False
 
     else:
-        if currentStockSelection == '11000000':
+        if currentStockSelection == '1':
             self.buttonStock1A.setStyleSheet("color: white; background: darkgreen;")
             self.buttonStock1B.setStyleSheet("color: white; background: darkgreen;")
-        elif currentStockSelection == '00111100':
+        elif currentStockSelection == '2':
             self.buttonStock2A.setStyleSheet("color: white; background: darkgreen;")
             self.buttonStock2B.setStyleSheet("color: white; background: darkgreen;")
             self.buttonStock2C.setStyleSheet("color: white; background: darkgreen;")
             self.buttonStock2D.setStyleSheet("color: white; background: darkgreen;")
-        elif currentStockSelection == '00000011':
+        elif currentStockSelection == '3':
             self.buttonStock3A.setStyleSheet("color: white; background: darkgreen;")
             self.buttonStock3B.setStyleSheet("color: white; background: darkgreen;")
 
         button.setStyleSheet("color: white; background: darkgreen;")
+        mission = fname[0].split('/missao')[1][:4]
+        if currentStockSelection in ['1','2','3','1A', '1B', '2A', '2B', '2C', '2D', '3A', '3B']:
+            self.setWindowTitle('PC Selector: Missão ' + mission + ' Pilha ' + currentStockSelection)
+        else:
+            self.setWindowTitle('PC Selector: Missão ' + currentStockSelection)
         self.currentStock = currentStockSelection
         return True
 
@@ -200,7 +197,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.mywidget)
 
         # Creating button objects
-        self.currentStock  = "00000000"
+        self.currentStock  = "0"
         self.buttonStock1A = QtWidgets.QPushButton("1A")
         self.buttonStock1B = QtWidgets.QPushButton("1B")
         self.buttonStock1  = QtWidgets.QPushButton("1")
@@ -352,19 +349,16 @@ class MainWindow(QtWidgets.QMainWindow):
             newView.clear()
             newView.load(pcVector, filter)
             newView.color_map('jet',scale=[m1, M2])
+            # view.set(phi = 0, theta = np.pi/2)
+            view.set(phi=-(np.pi/2-0.1933), theta=np.pi/2)
         else:
             view = pptk.viewer(pcVector)
             self.embedPC()
 
     # FUNCTION: Embed point cloud
     def embedPC(self):
-        # Find pptk window id
-        if OS == 'Windows':
-            global winId
-            winId = win32gui.FindWindowEx(0, 0, None, "viewer")
-        elif OS == 'Linux':
-            self.xlibList = Xlib.display.Display().screen().root
-            findViewer(self.xlibList)
+        self.xlibList = Xlib.display.Display().screen().root
+        findViewer(self.xlibList)
         # Creating a window object
         self.window = QtGui.QWindow.fromWinId(winId)
         self.window.setFlags(QtCore.Qt.FramelessWindowHint)
@@ -377,16 +371,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # FUNCTION: Clear temporary files
     def clearTempFiles(self):
-        # if os.path.exists(pathToCachedPC):
-        #     print("Clearing temporary files!")
-        #     os.remove(pathToCachedPC)
         if os.path.exists(pathToTemp):
             print("Clearing cached files!")
             shutil.rmtree(pathToTemp)
 
     def stock1Click(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock1B,'11000000'):
+        if currentStockManager(self, self.buttonStock1B,'1'):
             for pcFile in pcTemp:
                 if '_1.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -395,7 +386,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
     def stock1AClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock1B,'10000000'):
+        if currentStockManager(self, self.buttonStock1B,'1A'):
             for pcFile in pcTemp:
                 if '_1A.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -404,7 +395,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
     def stock1BClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock1B,'01000000'):
+        if currentStockManager(self, self.buttonStock1B,'1B'):
             for pcFile in pcTemp:
                 if '_1B.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -413,7 +404,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
     def stock2Click(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock2 ,'00111100'):
+        if currentStockManager(self, self.buttonStock2 ,'2'):
             for pcFile in pcTemp:
                 if '_2.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -422,7 +413,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
     def stock2AClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock2A,'00100000'):
+        if currentStockManager(self, self.buttonStock2A,'2A'):
             for pcFile in pcTemp:
                 if '_2A.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -431,7 +422,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
     def stock2BClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock2B,'00010000'):
+        if currentStockManager(self, self.buttonStock2B,'2B'):
             for pcFile in pcTemp:
                 if '_2B.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -440,7 +431,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
     def stock2CClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock2C,'00001000'):
+        if currentStockManager(self, self.buttonStock2C,'2C'):
             for pcFile in pcTemp:
                 if '_2C.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -449,7 +440,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
     def stock2DClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock2D,'00000100'):
+        if currentStockManager(self, self.buttonStock2D,'2D'):
             for pcFile in pcTemp:
                 if '_2D.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -458,7 +449,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def stock3Click(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock3 ,'00000011'):
+        if currentStockManager(self, self.buttonStock3 ,'3'):
             for pcFile in pcTemp:
                 if '_3.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -467,7 +458,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def stock3AClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock3A,'00000010'):
+        if currentStockManager(self, self.buttonStock3A,'3A'):
             for pcFile in pcTemp:
                 if '_3A.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -476,7 +467,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def stock3BClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock3B,'00000001'):
+        if currentStockManager(self, self.buttonStock3B,'3B'):
             for pcFile in pcTemp:
                 if '_3B.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -524,8 +515,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.repaint()
 
         # Open a dialog box
-        # fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", root, "Arquivos de nuvem de pontos (*.pcd)")
-        fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", '/home/adriano/git/drone-server/files/', "Arquivos de nuvem de pontos (*.pcd)")
+        fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
         # If nothing is selected: return
         if fname ==('',''):
             self.dialogBox.textCursor().insertText('Nenhuma nuvem escolhida!\n')
@@ -639,10 +629,10 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.buttonStock3B.setEnabled(True)
         
         ### Ajustar título da janela pra ser compatível com o sub-pilha alvo
-        # mission = fname[0]).split('/missao')[1][:4]
-        # subpile = fname[0][-6:][:-4]
-        mission = '0001'
-        subpile = '3B'
+        mission = fname[0].split('/missao')[1][:4]
+        subpile = fname[0][-6:][:-4]
+        # mission = '0001'
+        # subpile = '3B'
         if subpile in ['1A', '1B', '2A', '2B', '2C', '2D', '3A', '3B']:
             self.setWindowTitle('PC Selector: Missão ' + mission + ' Pilha ' + subpile)
         else:
@@ -713,7 +703,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def calcClick(self):
         if counter == -1:
             np.savetxt(pathToCachedPC, xyz)
-        volume = os.popen('python3 ' + os.path.join(root,'mainh.py ') + pathToCachedPC).read().split('\n')[0]
+        volume = os.popen('python3 ' + os.path.join(applicationRoot,'mainh.py ') + pathToCachedPC).read().split('\n')[0]
         self.dialogBox.textCursor().insertText("Volume total = " + volume + " m³.\n")
         self.repaint()
         print("Volume total = " + volume + " m³.\n")
@@ -810,7 +800,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.repaint()
 
         ## Save on HD
-        fname = QtWidgets.QFileDialog.getSaveFileName(self, 'Salvar nuvem de pontos', root, "Arquivos de nuvem de pontos (*.pcd)")
+        fname = QtWidgets.QFileDialog.getSaveFileName(self, 'Salvar nuvem de pontos', browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
         if fname == ('',''):
             self.dialogBox.textCursor().insertText('Operação "salvar" cancelada!\n')
             self.repaint()
