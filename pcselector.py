@@ -19,63 +19,19 @@ from   descartes import PolygonPatch
 from   PIL import Image
 import time
 
-# Random vector to create program ID
-randIdVec = string.ascii_letters+'0123456789'
-# Select 3 elements from randIdVec at random as ID
-ID = random.choice(randIdVec)+random.choice(randIdVec)+random.choice(randIdVec)
-# Action counter
-counter = -1
-# Action index
-index = 0
-# Action history
-history = []
-# Action history before
-historyBefore =[]
-# Action history after
-historyAfter =[]
-# Detect operational system
-OS = platform.system()
-if OS == 'Linux':
-    import Xlib
-    import Xlib.display
-else:
-    print("This application is Linux exclusive")
-    sys.exit()
-
-# GLOBAL VARIABLES
-# Id of pptk window for embeding procedure
-winId = 0
-# Path to main directory
-applicationRoot  = os.path.dirname(os.path.abspath(__file__)) + '/'
-# Browser root
-browserRoot = '/home/adriano/git/drone-server/files/'
-# Path to temporary folder
-pathToTemp = '/var/tmp/trms/'
-# Register for file currently open
-fname = ''
-nuvemTxt = ''
-cropFiles = ''
-pcTemp = []
-if not os.path.exists(pathToTemp):
-    os.mkdir(pathToTemp)
-# Path to cached point cloud
-pathToCachedPC = pathToTemp + 'selected.txt'
-# Flag to detect changes of point cloud
-flagModification = False
-
 # Search for a window called "viewer"
 def findViewer(list):
     # Modified global variables
-    global winId
+    global winId, winPID
     children = list.query_tree().children
     q = 0
     for w in children:
         subchildren = w.query_tree().children
         for xwin in subchildren:
-            display = Xlib.display.Display()
             if xwin.get_wm_class() is not None:
                 if ("viewer" in xwin.get_wm_class()):
-                    winId = xwin.id
+                    winId  = xwin.id
+                    winPID = os.popen('xprop -id '+str(winId)+' | grep "PID" | sed "s/_NET_WM_PID(CARDINAL) = //"').read()[:-1]
         q += 1
     pass
 
@@ -321,6 +277,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setMinimumSize(1000,500)
         # Creating a dummy pptk window
         self.setPointCloud([1,1,1],[1], [])
+        if editPCD:
+            self.loadClick(editPCD)
 
     def loadPointCloud(self, nuvemTxt):
         # Try to load the txt point cloud into a numpy float matrix.
@@ -371,13 +329,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # FUNCTION: Clear temporary files
     def clearTempFiles(self):
-        if os.path.exists(pathToTemp):
-            print("Clearing cached files!")
-            shutil.rmtree(pathToTemp)
+        os.system('kill -9 ' + winPID)
+        # if os.path.exists(pathToTemp):
+            # print("Clearing cached files!")
+            # shutil.rmtree(pathToTemp)
 
     def stock1Click(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock1B,'1'):
+        if currentStockManager(self, self.buttonStock1B, '1'):
             for pcFile in pcTemp:
                 if '_1.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -386,7 +345,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
     def stock1AClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock1B,'1A'):
+        if currentStockManager(self, self.buttonStock1B, '1A'):
             for pcFile in pcTemp:
                 if '_1A.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -395,7 +354,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
     def stock1BClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock1B,'1B'):
+        if currentStockManager(self, self.buttonStock1B, '1B'):
             for pcFile in pcTemp:
                 if '_1B.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -404,7 +363,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
     def stock2Click(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock2 ,'2'):
+        if currentStockManager(self, self.buttonStock2, '2'):
             for pcFile in pcTemp:
                 if '_2.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -413,7 +372,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
     def stock2AClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock2A,'2A'):
+        if currentStockManager(self, self.buttonStock2A, '2A'):
             for pcFile in pcTemp:
                 if '_2A.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -422,7 +381,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
     def stock2BClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock2B,'2B'):
+        if currentStockManager(self, self.buttonStock2B, '2B'):
             for pcFile in pcTemp:
                 if '_2B.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -431,7 +390,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
     def stock2CClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock2C,'2C'):
+        if currentStockManager(self, self.buttonStock2C, '2C'):
             for pcFile in pcTemp:
                 if '_2C.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -440,7 +399,7 @@ class MainWindow(QtWidgets.QMainWindow):
             
     def stock2DClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock2D,'2D'):
+        if currentStockManager(self, self.buttonStock2D, '2D'):
             for pcFile in pcTemp:
                 if '_2D.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -449,7 +408,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def stock3Click(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock3 ,'3'):
+        if currentStockManager(self, self.buttonStock3, '3'):
             for pcFile in pcTemp:
                 if '_3.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -458,7 +417,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def stock3AClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock3A,'3A'):
+        if currentStockManager(self, self.buttonStock3A, '3A'):
             for pcFile in pcTemp:
                 if '_3A.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -467,7 +426,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def stock3BClick(self):
         global nuvemTxt
-        if currentStockManager(self, self.buttonStock3B,'3B'):
+        if currentStockManager(self, self.buttonStock3B, '3B'):
             for pcFile in pcTemp:
                 if '_3B.txt' in pcFile:
                     nuvemTxt = pcFile
@@ -514,13 +473,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dialogBox.textCursor().insertText('Escolhendo nuvem de pontos...\n')
         self.repaint()
 
-        # Open a dialog box
-        fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
-        # If nothing is selected: return
-        if fname ==('',''):
-            self.dialogBox.textCursor().insertText('Nenhuma nuvem escolhida!\n')
-            self.repaint()
-            return
+        # # Open a dialog box
+        # fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
+        # # If nothing is selected: return
+        # if fname ==('',''):
+        #     self.dialogBox.textCursor().insertText('Nenhuma nuvem escolhida!\n')
+        #     self.repaint()
+        #     return
+        fname = [cloudPath,0]
         # Get file name
         nuvemPcd = fname[0]
         
@@ -708,89 +668,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.repaint()
         print("Volume total = " + volume + " m³.\n")
 
-        # # LER NUVEM DE PONTOS
-        # # Set root path to selected points
-        # try:
-        #     # Try to load the txt point cloud into a numpy float matrix
-        #     dados_df = np.loadtxt(pathToCachedPC, delimiter= ' ')
-        # except:
-        #     # Use entire cloud
-        #     dados_df = xyz
-        # # Status message
-        # self.dialogBox.textCursor().insertText('Calculando...\n')
-        # self.repaint()
-
-        # # Ajustar arquivo txt - (linha , coluna)
-        # dados_df = dados_df[:,:3]
-        # # Ordenar eixo x
-        # dados   = dados_df[dados_df[:,0].argsort()]
-        # # Armazena cada eixo em uma variavel
-        # dados_x = dados[:,0]
-        # dados_y = dados[:,1]
-        # dados_z = dados[:,2]
-        
-        # # Path to slices
-        # if os.path.exists(pathToTemp):
-        #     shutil.rmtree(pathToTemp)
-        #     print("Clearing cache!")
-        # else:
-        #     # Status message
-        #     self.dialogBox.textCursor().insertText('Criando diretório temporário...\n')
-        #     self.repaint()
-
-        # # SEPARAR EM SLICES NO EIXO X COM INTERVALOR DE 1000
-        # intervalo = 1000 # se ficar menor não fecha o polígono
-        # for i in range(len(dados_x)//intervalo):
-        #     points = [(y,z) for y,z in zip(dados_y[i*intervalo: (i+1)*intervalo],dados_z[i*intervalo: (i+1)*intervalo])]
-
-        #     # DEFININDO ALPHA
-        #     alpha_shape = alphashape.alphashape(points, 0.)
-        #     # alpha_shape = alphashape.alphashape(points) # calculo do alpha automatico
-            
-        #     fig, ax = plt.subplots()
-        #     ax.scatter(*zip(*points))
-            
-        #     plt.xlim([np.min(dados_y), np.max(dados_y)])
-        #     plt.ylim([np.min(dados_z), np.max(dados_z)])
-        #     plt.axis("off") 
-
-        #     ax.add_patch(PolygonPatch(alpha_shape, alpha=0.2))
-        #     plt.xlim([np.min(dados_y), np.max(dados_y)]) # limitando o espaço de plotar em y
-        #     plt.ylim([np.min(dados_z), np.max(dados_z)]) # limitando o espaço de plotar em z
-        #     plt.axis("off") # sem eixos
-            
-        #     # Plotar arquivo .txt de cada slice
-        #     fig.savefig(pathToTemp+'/fig_{}.png'.format(i))
-        #     print(i) 
-
-        #     points_slice = [(x,y,z) for x,y,z in zip(dados_x[i*intervalo: (i+1)*intervalo],dados_y[i*intervalo: (i+1)*intervalo],dados_z[i*intervalo: (i+1)*intervalo])]
-        #     np.savetxt(pathToTemp+'/points_fig_{}.txt'.format(i), points_slice, delimiter=' ') 
-
-        #     plt.close()
-
-        # # Identificar o numero de slices na path
-        # filepaths = glob.glob(pathToTemp+ "*.png", recursive= True)
-        # print(len(filepaths)) # Número de arquivos na path
-
-        # total = 0
-
-        # for i in range(len(filepaths)):
-        #     img = np.asarray(Image.open(pathToTemp + "fig_{}.png".format(i)).convert('L'))
-        #     img = 1 * (img < 255)
-        #     m,n = img.shape
-        #     total += img.sum() 
-        #     print("{} white pixels, out of {} pixels in total.".format(img.sum(), m*n)) 
-            
-        # print("Número total de pixels {}".format(total))
-
-        # somaslices = total
-        # volumeareaporpixels= somaslices*0.005657 #relação pixels to m3 
-        
-        # self.dialogBox.textCursor().insertText("Volume total = {} m³".format(volumeareaporpixels)+'.\n')
-        # self.repaint()
-        # print("Volume total = {} m³".format(volumeareaporpixels))
-
-
     # CLICK: Save current point cloud
     def saveClick(self):
         # Modified global variables
@@ -912,22 +789,83 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.saveClick()
             elif reply == QtWidgets.QMessageBox.No:
                 self.clearTempFiles()
-                os.system('killall viewer')
                 event.accept()
             elif reply == QtWidgets.QMessageBox.Cancel:
                 event.ignore()
         else:
             self.clearTempFiles()
-            os.system('killall viewer')
             event.accept()
 
 
+# Random vector to create program ID
+randIdVec = string.ascii_letters+'0123456789'
+# Select 3 elements from randIdVec at random as ID
+ID = random.choice(randIdVec)+random.choice(randIdVec)+random.choice(randIdVec)
+# Action counter
+counter = -1
+# Action index
+index = 0
+# Action history
+history = []
+# Action history before
+historyBefore = []
+# Action history after
+historyAfter = []
+# Detect operational system
+OS = platform.system()
+if OS == 'Linux':
+    import Xlib
+    import Xlib.display
+else:
+    print("This application is Linux exclusive")
+    sys.exit()
+
+# GLOBAL VARIABLES
+# Id of pptk window for embeding procedure
+winId = 0
+winPID = 0
+# Path to main directory
+applicationRoot  = os.path.dirname(os.path.abspath(__file__)) + '/'
+# Browser root
+browserRoot = '/home/adriano/git/drone-server/files/'
+# Path to temporary folder
+pathToTemp = '/var/tmp/trms/'
+# Register for file currently open
+fname = ''
+nuvemTxt = ''
+cropFiles = ''
+pcTemp = []
+if not os.path.exists(pathToTemp):
+    os.mkdir(pathToTemp)
+# Path to cached point cloud
+pathToCachedPC = pathToTemp + 'selected.txt'
+# Flag to detect changes of point cloud
+flagModification = False
+
+editPCD = ''
+# sys.argv.append('--edit /var/tmp/trms/nuvem_2020-09-14T10:31:00_3A.txt')
+argv = sys.argv
+#argv = ['/home/adriano/git/volumecarvao/pcselector.py', '--edit /home/adriano/git/drone-server/files/missao0001/crops/nuvem_2020-09-14T10:31:00_3B.pcd']
+try:
+    args      = argv[1].split()
+    indexEdit = args.index('--edit')
+    editPCD      = args[indexEdit+1]
+except:
+    print('Invalid point cloud argument.')
 
 if __name__ == '__main__':
-    app = QtWidgets.QApplication(sys.argv)
+    app = QtWidgets.QApplication(argv)
     app.setStyle("fusion")
     form = MainWindow()
-    form.setWindowTitle('PC Selector')
+    if editPCD:
+        mission = fname[0].split('/missao')[1][:4]
+        subpile = fname[0][-6:][:-4]
+        if subpile in ['1A', '1B', '2A', '2B', '2C', '2D', '3A', '3B']:
+            form.setWindowTitle('PC Selector: Missão ' + mission + ' Pilha ' + subpile)
+        else:
+            form.setWindowTitle('PC Selector: Missão ' + mission)
+    else:
+        form.setWindowTitle('PC Selector')
     #form.setGeometry(100, 100, 600, 500)
     form.show()
 
