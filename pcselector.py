@@ -15,7 +15,7 @@ import pptk
 import sys
 import os
 from   PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QApplication, QAbstractItemView
 from   descartes import PolygonPatch
 from   PIL import Image
 import time
@@ -141,29 +141,33 @@ class Second(QtWidgets.QMainWindow):
         
         self.setCentralWidget(self.mywidget)
         
-        payload = {"responseType":"fieldList","initDate":"2020-10-01 00:00:00","endDate":"2020-10-31 23:59:59"}
+        payload = {"responseType":"fieldList","initDate":"2010-01-01 00:00:00","endDate":"2100-10-31 23:59:59"}
         r = requests.get('http://localhost:8503/pointCloudData', params=payload)
-        print(r.text)
-        dbDatas = json.loads(r.text)
-        dbData = dbDatas[0]
-        dbData['id']
+        self.dbDatas = json.loads(r.text)
+        self.dbData = self.dbDatas[0]
+        self.dbData['id']
         print('browse database')
-        nRows = len(dbDatas)
         idList      = list()
         initList    = list()
         missionList = list()
-        for i in range(0, nRows):
-            idList.append(dbDatas[i]['id'])
-            initList.append(dbDatas[i]['flight_init'])
-            missionList.append(dbDatas[i]['mission'])
+        self.nRows = len(self.dbDatas)
+        for i in range(0, self.nRows):
+            idList.append(self.dbDatas[i]['id'])
+            initList.append(self.dbDatas[i]['flight_init'])
+            missionList.append(self.dbDatas[i]['mission'])
 
-        self.createTable(idList, initList, missionList, nRows)
+        self.createTable(idList, initList, missionList)
 
         self.buttonCancel = QtWidgets.QPushButton('Cancelar')
         self.buttonSelect = QtWidgets.QPushButton('Selecionar')
 
         self.buttonCancel.clicked.connect(self.cancelAction)
         self.buttonSelect.clicked.connect(self.selectAction)
+
+        if self.tableWidget.rowCount() == 0:
+            self.buttonSelect.setEnabled(False)
+        else:
+            self.tableWidget.selectRow(0)
 
         self.dataLayout.addWidget(self.tableWidget)
 
@@ -174,21 +178,53 @@ class Second(QtWidgets.QMainWindow):
         self.mylayout.addWidget(self.dataWidget, 0, 0, 1, 2)
         self.mylayout.addWidget(self.buttonsWidget, 1, 0)
 
-    def createTable(self, idList, initList, missionList, nRows):
+        self.setGeometry(0,0,337,300)
+        self.setMaximumWidth(350)
+
+    def createTable(self, idList, initList, missionList):
         self.tableWidget = QTableWidget()
-        self.tableWidget.setRowCount(nRows)
+        self.tableWidget.setRowCount(self.nRows)
         self.tableWidget.setColumnCount(3)
-        for i in range(0, nRows):
-            self.tableWidget.setItem(i, 0, QTableWidgetItem(str(idList[i])))
-            self.tableWidget.setItem(i, 1, QTableWidgetItem(initList[i]))
-            self.tableWidget.setItem(i, 2, QTableWidgetItem(missionList[i]))
-            # self.tableWidget.move(0,0)
+        self.tableWidget.setSelectionBehavior(QAbstractItemView.SelectRows)
+        if self.nRows > 0:
+            for i in range(self.nRows-1,-1,-1):
+                date = initList[i].split('-')[2].split('T')[0]+'/'+initList[i].split('-')[1]+'/'+initList[i].split('-')[0] + ' ' + initList[i].split('-')[2].split('T')[1][:-5]
+                self.tableWidget.setItem(self.nRows-i-1, 0, QTableWidgetItem(str(idList[i])))
+                self.tableWidget.setItem(self.nRows-i-1, 1, QTableWidgetItem(date))
+                self.tableWidget.setItem(self.nRows-i-1, 2, QTableWidgetItem(missionList[i][:-4]))
+                self.tableWidget.move(10,20)
+        self.tableWidget.setHorizontalHeaderLabels(['id', 'data e hora','missão'])
+        self.tableWidget.resizeColumnsToContents()
+        self.tableWidget.resizeRowsToContents()
 
     def cancelAction(self):
-        print('Cancel action')
+        self.close()
 
     def selectAction(self):
         print('Select action')
+        pcdId = self.tableWidget.selectedItems()[0].text()
+        payload = {"responseType":"pcdFile","id":pcdId,"pcdFile":"raw"}
+        r = requests.get('http://localhost:8503/pointCloudData', params=payload)
+        headerData = json.dumps(dict(r.headers))
+        headerData = json.loads(headerData)
+        pcdName = self.tableWidget.selectedItems()[1].text().replace('/','-').replace(':','')
+        fileName = '/var/tmp/trms/'+pcdId+'m_'+pcdName+'.pcd'
+        with open(fileName, 'wb') as fd:
+            for chunk in r.iter_content(chunk_size=128):
+                fd.write(chunk)
+        cropList = ['fn_stp1a','fn_stp1b','fn_stp2a','fn_stp2b','fn_stp2c','fn_stp2d','fn_stp3a','fn_stp3b']
+        for crop in cropList:
+            if self.dbDatas[self.nRows-self.tableWidget.selectedIndexes()[0].row()-1][crop] != '':
+                cropId = crop[-2]+crop[-1].capitalize()
+                payload = {"responseType":"pcdFile","id":pcdId,"pcdFile":cropId}
+                r = requests.get('http://localhost:8503/pointCloudData', params=payload)
+                headerData = json.dumps(dict(r.headers))
+                headerData = json.loads(headerData)
+                fileName = "/var/tmp/trms/"+pcdId+'m_'+pcdName+'_'+cropId+'.pcd'
+                with open(fileName, 'wb') as fd:
+                    for chunk in r.iter_content(chunk_size=128):
+                        fd.write(chunk)
+
 
 # Main window code
 class MainWindow(QtWidgets.QMainWindow):
@@ -504,6 +540,7 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def browseFiles(self):
         global fname
+        self.dialogLoad.close()
         print('browse files')
         # Open a dialog box
         fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
@@ -515,6 +552,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def browseDB(self):
         global fname
+        self.dialogLoad.close()
         self.database.show()
 
     # CLICK: Load new point cloud
@@ -548,18 +586,20 @@ class MainWindow(QtWidgets.QMainWindow):
         if cloudPath:
             fname = [cloudPath,0]
         else:
-            d = QtWidgets.QDialog()
-            b1 = QtWidgets.QPushButton("Disco rígido", d)
-            b1.move(10,15)
-            b1.clicked.connect(self.browseFiles)
-            b2 = QtWidgets.QPushButton("Banco de dados", d)
-            b2.move(110,15)
-            b2.clicked.connect(self.browseDB)
-            d.setGeometry(600,300,235,50)
-            d.setWindowTitle("Fonte de arquivos")
-            d.exec()
+            self.dialogLoad = QtWidgets.QDialog()
+            self.buttonHD = QtWidgets.QPushButton("Disco rígido", self.dialogLoad)
+            self.buttonHD.move(10,15)
+            self.buttonHD.clicked.connect(self.browseFiles)
+            self.buttonDB = QtWidgets.QPushButton("Banco de dados", self.dialogLoad)
+            self.buttonDB.move(110,15)
+            self.buttonDB.clicked.connect(self.browseDB)
+            self.dialogLoad.setGeometry(600,300,235,50)
+            self.dialogLoad.setWindowTitle("Fonte de arquivos")
+            self.dialogLoad.exec()
         nuvemPcd = fname[0]
         
+        if nuvemPcd == '':
+            return
         self.nuvemTxt = os.path.join(pathToTemp, nuvemPcd.split('/')[-1].split('.')[0]+'.txt')
         if os.path.exists(self.nuvemTxt):
             print("Cloud " + nuvemPcd.split('/')[-1] + " loaded from cache!")
@@ -907,7 +947,7 @@ browserRoot = '/home/adriano/git/drone-server/files/'
 # Path to temporary folder
 pathToTemp = '/var/tmp/trms/'
 # Register for file currently open
-fname = ''
+fname = ('','')
 cropFiles = ''
 pcTemp = []
 if not os.path.exists(pathToTemp):
