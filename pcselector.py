@@ -15,6 +15,7 @@ import pptk
 import sys
 import os
 from   PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem
 from   descartes import PolygonPatch
 from   PIL import Image
 import time
@@ -125,6 +126,70 @@ def currentStockManager(self, button, currentStockSelection):
         self.currentStock = currentStockSelection
         return True
 
+class Second(QtWidgets.QMainWindow):
+    def __init__(self, parent=None):
+        super(Second, self).__init__(parent)
+
+        self.mywidget = QtWidgets.QWidget()
+
+        self.dataWidget    = QtWidgets.QWidget()
+        self.buttonsWidget = QtWidgets.QWidget()
+
+        self.mylayout      = QtWidgets.QGridLayout(self.mywidget)
+        self.dataLayout    = QtWidgets.QGridLayout(self.dataWidget)
+        self.buttonsLayout = QtWidgets.QGridLayout(self.buttonsWidget)
+        
+        self.setCentralWidget(self.mywidget)
+        
+        payload = {"responseType":"fieldList","initDate":"2020-10-01 00:00:00","endDate":"2020-10-31 23:59:59"}
+        r = requests.get('http://localhost:8503/pointCloudData', params=payload)
+        print(r.text)
+        dbDatas = json.loads(r.text)
+        dbData = dbDatas[0]
+        dbData['id']
+        print('browse database')
+        nRows = len(dbDatas)
+        idList      = list()
+        initList    = list()
+        missionList = list()
+        for i in range(0, nRows):
+            idList.append(dbDatas[i]['id'])
+            initList.append(dbDatas[i]['flight_init'])
+            missionList.append(dbDatas[i]['mission'])
+
+        self.createTable(idList, initList, missionList, nRows)
+
+        self.buttonCancel = QtWidgets.QPushButton('Cancelar')
+        self.buttonSelect = QtWidgets.QPushButton('Selecionar')
+
+        self.buttonCancel.clicked.connect(self.cancelAction)
+        self.buttonSelect.clicked.connect(self.selectAction)
+
+        self.dataLayout.addWidget(self.tableWidget)
+
+        self.buttonsLayout.addWidget(self.buttonSelect, 0, 0)
+        self.buttonsLayout.addWidget(self.buttonCancel, 0, 1)
+
+        self.mylayout.setColumnStretch(1, 2)
+        self.mylayout.addWidget(self.dataWidget, 0, 0, 1, 2)
+        self.mylayout.addWidget(self.buttonsWidget, 1, 0)
+
+    def createTable(self, idList, initList, missionList, nRows):
+        self.tableWidget = QTableWidget()
+        self.tableWidget.setRowCount(nRows)
+        self.tableWidget.setColumnCount(3)
+        for i in range(0, nRows):
+            self.tableWidget.setItem(i, 0, QTableWidgetItem(str(idList[i])))
+            self.tableWidget.setItem(i, 1, QTableWidgetItem(initList[i]))
+            self.tableWidget.setItem(i, 2, QTableWidgetItem(missionList[i]))
+            # self.tableWidget.move(0,0)
+
+    def cancelAction(self):
+        print('Cancel action')
+
+    def selectAction(self):
+        print('Select action')
+
 # Main window code
 class MainWindow(QtWidgets.QMainWindow):
     # INITIALIZATION FUNCTION
@@ -133,6 +198,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Widget object
         self.mywidget = QtWidgets.QWidget()
+
+        self.nuvemTxt = ''
+        self.database = Second(self)
 
         self.stockWidget = QtWidgets.QWidget()
         self.buttonsWidget = QtWidgets.QWidget()
@@ -335,103 +403,92 @@ class MainWindow(QtWidgets.QMainWindow):
             # shutil.rmtree(pathToTemp)
 
     def stock1Click(self):
-        global nuvemTxt
         if currentStockManager(self, self.buttonStock1B, '1'):
             for pcFile in pcTemp:
                 if '_1.txt' in pcFile:
-                    nuvemTxt = pcFile
+                    self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
-            self.loadPointCloud(nuvemTxt)
+            self.loadPointCloud(self.nuvemTxt)
             
     def stock1AClick(self):
-        global nuvemTxt
         if currentStockManager(self, self.buttonStock1B, '1A'):
             for pcFile in pcTemp:
                 if '_1A.txt' in pcFile:
-                    nuvemTxt = pcFile
+                    self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
-            self.loadPointCloud(nuvemTxt)
+            self.loadPointCloud(self.nuvemTxt)
             
     def stock1BClick(self):
-        global nuvemTxt
         if currentStockManager(self, self.buttonStock1B, '1B'):
             for pcFile in pcTemp:
                 if '_1B.txt' in pcFile:
-                    nuvemTxt = pcFile
+                    self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
-            self.loadPointCloud(nuvemTxt)
+            self.loadPointCloud(self.nuvemTxt)
             
     def stock2Click(self):
-        global nuvemTxt
         if currentStockManager(self, self.buttonStock2, '2'):
             for pcFile in pcTemp:
                 if '_2.txt' in pcFile:
-                    nuvemTxt = pcFile
+                    self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
-            self.loadPointCloud(nuvemTxt)
+            self.loadPointCloud(self.nuvemTxt)
             
     def stock2AClick(self):
-        global nuvemTxt
         if currentStockManager(self, self.buttonStock2A, '2A'):
             for pcFile in pcTemp:
                 if '_2A.txt' in pcFile:
-                    nuvemTxt = pcFile
+                    self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
-            self.loadPointCloud(nuvemTxt)
+            self.loadPointCloud(self.nuvemTxt)
             
     def stock2BClick(self):
-        global nuvemTxt
         if currentStockManager(self, self.buttonStock2B, '2B'):
             for pcFile in pcTemp:
                 if '_2B.txt' in pcFile:
-                    nuvemTxt = pcFile
+                    self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
-            self.loadPointCloud(nuvemTxt)
+            self.loadPointCloud(self.nuvemTxt)
             
     def stock2CClick(self):
-        global nuvemTxt
         if currentStockManager(self, self.buttonStock2C, '2C'):
             for pcFile in pcTemp:
                 if '_2C.txt' in pcFile:
-                    nuvemTxt = pcFile
+                    self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
-            self.loadPointCloud(nuvemTxt)
+            self.loadPointCloud(self.nuvemTxt)
             
     def stock2DClick(self):
-        global nuvemTxt
         if currentStockManager(self, self.buttonStock2D, '2D'):
             for pcFile in pcTemp:
                 if '_2D.txt' in pcFile:
-                    nuvemTxt = pcFile
+                    self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
-            self.loadPointCloud(nuvemTxt)
+            self.loadPointCloud(self.nuvemTxt)
 
     def stock3Click(self):
-        global nuvemTxt
         if currentStockManager(self, self.buttonStock3, '3'):
             for pcFile in pcTemp:
                 if '_3.txt' in pcFile:
-                    nuvemTxt = pcFile
+                    self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
-            self.loadPointCloud(nuvemTxt)
+            self.loadPointCloud(self.nuvemTxt)
 
     def stock3AClick(self):
-        global nuvemTxt
         if currentStockManager(self, self.buttonStock3A, '3A'):
             for pcFile in pcTemp:
                 if '_3A.txt' in pcFile:
-                    nuvemTxt = pcFile
+                    self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
-            self.loadPointCloud(nuvemTxt)
+            self.loadPointCloud(self.nuvemTxt)
 
     def stock3BClick(self):
-        global nuvemTxt
         if currentStockManager(self, self.buttonStock3B, '3B'):
             for pcFile in pcTemp:
                 if '_3B.txt' in pcFile:
-                    nuvemTxt = pcFile
+                    self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
-            self.loadPointCloud(nuvemTxt)
+            self.loadPointCloud(self.nuvemTxt)
 
     def topClick(self):
         global view
@@ -444,11 +501,26 @@ class MainWindow(QtWidgets.QMainWindow):
     def sideClick(self):
         global view
         view.set(phi = np.pi/2, theta = 0)
+    
+    def browseFiles(self):
+        global fname
+        print('browse files')
+        # Open a dialog box
+        fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
+        # If nothing is selected: return
+        if fname ==('',''):
+            self.dialogBox.textCursor().insertText('Nenhuma nuvem escolhida!\n')
+            self.repaint()
+            return
+
+    def browseDB(self):
+        global fname
+        self.database.show()
 
     # CLICK: Load new point cloud
     def loadClick(self, cloudPath):
         # Modified global variables
-        global view, xyz, fname, nuvemTxt, cropFiles, historyAfter, history, historyBefore, counter, index, pcTemp, flagModification
+        global view, xyz, fname, cropFiles, historyAfter, history, historyBefore, counter, index, pcTemp, flagModification
 
         if flagModification:
             quit_msg = "Deseja salvar as últimas modificações?"
@@ -473,19 +545,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dialogBox.textCursor().insertText('Escolhendo nuvem de pontos...\n')
         self.repaint()
 
-        # # Open a dialog box
-        # fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
-        # # If nothing is selected: return
-        # if fname ==('',''):
-        #     self.dialogBox.textCursor().insertText('Nenhuma nuvem escolhida!\n')
-        #     self.repaint()
-        #     return
-        fname = [cloudPath,0]
-        # Get file name
+        if cloudPath:
+            fname = [cloudPath,0]
+        else:
+            d = QtWidgets.QDialog()
+            b1 = QtWidgets.QPushButton("Disco rígido", d)
+            b1.move(10,15)
+            b1.clicked.connect(self.browseFiles)
+            b2 = QtWidgets.QPushButton("Banco de dados", d)
+            b2.move(110,15)
+            b2.clicked.connect(self.browseDB)
+            d.setGeometry(600,300,235,50)
+            d.setWindowTitle("Fonte de arquivos")
+            d.exec()
         nuvemPcd = fname[0]
         
-        nuvemTxt = os.path.join(pathToTemp, nuvemPcd.split('/')[-1].split('.')[0]+'.txt')
-        if os.path.exists(nuvemTxt):
+        self.nuvemTxt = os.path.join(pathToTemp, nuvemPcd.split('/')[-1].split('.')[0]+'.txt')
+        if os.path.exists(self.nuvemTxt):
             print("Cloud " + nuvemPcd.split('/')[-1] + " loaded from cache!")
         else:
             os.system('extconverter '+nuvemPcd+' -D '+pathToTemp)
@@ -497,14 +573,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Try to load the txt point cloud into a numpy float matrix.
         try:
-            xyz = np.loadtxt(nuvemTxt, delimiter= ' ')
+            xyz = np.loadtxt(self.nuvemTxt, delimiter= ' ')
         except:
             self.dialogBox.textCursor().insertText('Erro: arquivo inválido!\n')
             self.repaint()
             return
 
         pcTemp = []
-        pcTemp.append(nuvemTxt)
+        pcTemp.append(self.nuvemTxt)
 
         # Filter x, y and z coordinates
         xyz = xyz[:,:3]
@@ -708,7 +784,7 @@ class MainWindow(QtWidgets.QMainWindow):
         historyAfter.insert(0, historyBefore.pop())
         if not historyBefore:
             index = -1
-            nuvem = nuvemTxt###
+            nuvem = self.nuvemTxt###
             self.buttonUndo.setStyleSheet("color: #373f49; background: #373f49;")
             self.buttonUndo.setEnabled(False)
         else:
@@ -832,7 +908,6 @@ browserRoot = '/home/adriano/git/drone-server/files/'
 pathToTemp = '/var/tmp/trms/'
 # Register for file currently open
 fname = ''
-nuvemTxt = ''
 cropFiles = ''
 pcTemp = []
 if not os.path.exists(pathToTemp):
@@ -845,11 +920,11 @@ flagModification = False
 editPCD = ''
 # sys.argv.append('--edit /var/tmp/trms/nuvem_2020-09-14T10:31:00_3A.txt')
 argv = sys.argv
-#argv = ['/home/adriano/git/volumecarvao/pcselector.py', '--edit /home/adriano/git/drone-server/files/missao0001/crops/nuvem_2020-09-14T10:31:00_3B.pcd']
+# argv = ['/home/adriano/git/volumecarvao/pcselector.py', '--edit /home/adriano/git/drone-server/files/missao0001/crops/nuvem_2020-09-14T10:31:00_3B.pcd']
 try:
     args      = argv[1].split()
     indexEdit = args.index('--edit')
-    editPCD      = args[indexEdit+1]
+    editPCD   = args[indexEdit+1]
 except:
     print('Invalid point cloud argument.')
 
