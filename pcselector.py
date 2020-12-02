@@ -9,139 +9,35 @@ import random
 import shutil
 import string
 import PyQt5
+import Xlib
+import Xlib.display
 import glob
 import json
 import pptk
 import sys
 import os
 from   PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QApplication, QAbstractItemView
+from   PyQt5.QtWidgets import QMainWindow, QTableWidget, QTableWidgetItem, QApplication, QAbstractItemView, QWidget, QGridLayout, QPushButton, QTextEdit, QMessageBox, QFileDialog, QDialog
 from   descartes import PolygonPatch
 from   PIL import Image
 import time
 
-# Search for a window called "viewer"
-def findViewer(list):
-    # Modified global variables
-    global winId, winPID
-    children = list.query_tree().children
-    q = 0
-    for w in children:
-        subchildren = w.query_tree().children
-        for xwin in subchildren:
-            if xwin.get_wm_class() is not None:
-                if ("viewer" in xwin.get_wm_class()):
-                    winId  = xwin.id
-                    winPID = os.popen('xprop -id '+str(winId)+' | grep "PID" | sed "s/_NET_WM_PID(CARDINAL) = //"').read()[:-1]
-        q += 1
-    pass
-
-def currentStockManager(self, button, currentStockSelection):
-    global flagModification, history, historyAfter, historyBefore, index, counter
-    if flagModification:
-        quit_msg = "Deseja salvar as últimas modificações?"
-        mBox = QtWidgets.QMessageBox(self)
-        mBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Cancel)
-        mBox.setWindowTitle('Modificações pendentes!')
-        mBox.setText(quit_msg)
-        buttonYes = mBox.button(QtWidgets.QMessageBox.Yes)
-        buttonYes.setText('Sim')
-        buttonNo = mBox.button(QtWidgets.QMessageBox.No)
-        buttonNo.setText('Não')
-        buttonCancel = mBox.button(QtWidgets.QMessageBox.Cancel)
-        buttonCancel.setText('Cancelar')
-        reply = mBox.exec()
-        if reply == QtWidgets.QMessageBox.Yes:
-            self.saveClick()
-        elif reply == QtWidgets.QMessageBox.Cancel:
-            return False
-        elif reply == QtWidgets.QMessageBox.No:
-            flagModification = False
-            historyBefore = []
-            history = []
-            historyAfter = []
-            index = 0
-            counter = -1
-            self.buttonUndo.setStyleSheet("color: #373f49; background: #373f49;")
-            self.buttonUndo.setEnabled(False)
-            self.buttonRedo.setStyleSheet("color: #373f49; background: #373f49;")
-            self.buttonRedo.setEnabled(False)
-            self.buttonSave.setStyleSheet("color: #373f49; background: #373f49;")
-            self.buttonSave.setEnabled(False)
-            
-
-    if self.buttonStock1.isEnabled():
-        self.buttonStock1.setStyleSheet( "color: black; background: #373f49;")
-        self.buttonStock1A.setStyleSheet("color: black; background: #373f49;")
-        self.buttonStock1B.setStyleSheet("color: black; background: #373f49;")
-    else:
-        self.buttonStock1.setStyleSheet( "color: #373f49; background: #373f49;")
-        self.buttonStock1A.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock1B.setStyleSheet("color: #373f49; background: #373f49;")
-
-    if self.buttonStock2.isEnabled():
-        self.buttonStock2.setStyleSheet( "color: black; background: #373f49;")
-        self.buttonStock2A.setStyleSheet("color: black; background: #373f49;")
-        self.buttonStock2B.setStyleSheet("color: black; background: #373f49;")
-        self.buttonStock2C.setStyleSheet("color: black; background: #373f49;")
-        self.buttonStock2D.setStyleSheet("color: black; background: #373f49;")
-    else:
-        self.buttonStock2.setStyleSheet( "color: #373f49; background: #373f49;")
-        self.buttonStock2A.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock2B.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock2C.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock2D.setStyleSheet("color: #373f49; background: #373f49;")
-    if self.buttonStock3.isEnabled():
-        self.buttonStock3.setStyleSheet( "color: black; background: #373f49;")
-        self.buttonStock3A.setStyleSheet("color: black; background: #373f49;")
-        self.buttonStock3B.setStyleSheet("color: black; background: #373f49;")
-    else:
-        self.buttonStock3.setStyleSheet( "color: #373f49; background: #373f49;")
-        self.buttonStock3A.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock3B.setStyleSheet("color: #373f49; background: #373f49;")
-    if currentStockSelection == self.currentStock:
-        self.currentStock = '0'
-        self.loadPointCloud(pcTemp[0])
-        return False
-
-    else:
-        if currentStockSelection == '1':
-            self.buttonStock1A.setStyleSheet("color: white; background: darkgreen;")
-            self.buttonStock1B.setStyleSheet("color: white; background: darkgreen;")
-        elif currentStockSelection == '2':
-            self.buttonStock2A.setStyleSheet("color: white; background: darkgreen;")
-            self.buttonStock2B.setStyleSheet("color: white; background: darkgreen;")
-            self.buttonStock2C.setStyleSheet("color: white; background: darkgreen;")
-            self.buttonStock2D.setStyleSheet("color: white; background: darkgreen;")
-        elif currentStockSelection == '3':
-            self.buttonStock3A.setStyleSheet("color: white; background: darkgreen;")
-            self.buttonStock3B.setStyleSheet("color: white; background: darkgreen;")
-
-        button.setStyleSheet("color: white; background: darkgreen;")
-        mission = fname[0].split('/missao')[1][:4]
-        if currentStockSelection in ['1','2','3','1A', '1B', '2A', '2B', '2C', '2D', '3A', '3B']:
-            self.setWindowTitle('PC Selector: Missão ' + mission + ' Pilha ' + currentStockSelection)
-        else:
-            self.setWindowTitle('PC Selector: Missão ' + currentStockSelection)
-        self.currentStock = currentStockSelection
-        return True
-
-class Second(QtWidgets.QMainWindow):
+class Second(QMainWindow):
     def __init__(self, parent=None):
         super(Second, self).__init__(parent)
 
-        self.mywidget = QtWidgets.QWidget()
+        self.mywidget = QWidget()
 
-        self.dataWidget    = QtWidgets.QWidget()
-        self.buttonsWidget = QtWidgets.QWidget()
+        self.dataWidget    = QWidget()
+        self.buttonsWidget = QWidget()
 
-        self.mylayout      = QtWidgets.QGridLayout(self.mywidget)
-        self.dataLayout    = QtWidgets.QGridLayout(self.dataWidget)
-        self.buttonsLayout = QtWidgets.QGridLayout(self.buttonsWidget)
-        
+        self.mylayout      = QGridLayout(self.mywidget)
+        self.dataLayout    = QGridLayout(self.dataWidget)
+        self.buttonsLayout = QGridLayout(self.buttonsWidget)
+
         self.setCentralWidget(self.mywidget)
-        
-        payload = {"responseType":"fieldList","initDate":"2010-01-01 00:00:00","endDate":"2100-10-31 23:59:59"}
+        # pylint: disable=line-too-long
+        payload = {"responseType":"fieldList", "initDate":"2010-01-01 00:00:00", "endDate":"2100-10-31 23:59:59"}
         r = requests.get('http://localhost:8503/pointCloudData', params=payload)
         self.dbDatas = json.loads(r.text)
         self.dbData = self.dbDatas[0]
@@ -158,8 +54,8 @@ class Second(QtWidgets.QMainWindow):
 
         self.createTable(idList, initList, missionList)
 
-        self.buttonCancel = QtWidgets.QPushButton('Cancelar')
-        self.buttonSelect = QtWidgets.QPushButton('Selecionar')
+        self.buttonCancel = QPushButton('Cancelar')
+        self.buttonSelect = QPushButton('Selecionar')
 
         self.buttonCancel.clicked.connect(self.cancelAction)
         self.buttonSelect.clicked.connect(self.selectAction)
@@ -198,6 +94,10 @@ class Second(QtWidgets.QMainWindow):
         self.tableWidget.resizeRowsToContents()
 
     def cancelAction(self):
+        form.dialogBox.clear()
+        form.dialogBox.textCursor().insertText('Nenhuma nuvem escolhida!\n')
+        form.repaint()
+        form.mywidget.setEnabled(True)
         self.close()
 
     def selectAction(self):
@@ -207,9 +107,11 @@ class Second(QtWidgets.QMainWindow):
         r = requests.get('http://localhost:8503/pointCloudData', params=payload)
         headerData = json.dumps(dict(r.headers))
         headerData = json.loads(headerData)
-        pcdName = self.tableWidget.selectedItems()[1].text().replace('/','-').replace(':','')
-        fileName = '/var/tmp/trms/'+pcdId+'m_'+pcdName+'.pcd'
-        with open(fileName, 'wb') as fd:
+        filePath = '/var/tmp/trms/crops' + pcdId + '/'
+        if not os.path.exists(filePath):
+            os.mkdir(filePath)
+        rawFileName = os.path.join(filePath, pcdId+'.pcd')
+        with open(rawFileName, 'wb') as fd:
             for chunk in r.iter_content(chunk_size=128):
                 fd.write(chunk)
         cropList = ['fn_stp1a','fn_stp1b','fn_stp2a','fn_stp2b','fn_stp2c','fn_stp2d','fn_stp3a','fn_stp3b']
@@ -220,27 +122,72 @@ class Second(QtWidgets.QMainWindow):
                 r = requests.get('http://localhost:8503/pointCloudData', params=payload)
                 headerData = json.dumps(dict(r.headers))
                 headerData = json.loads(headerData)
-                fileName = "/var/tmp/trms/"+pcdId+'m_'+pcdName+'_'+cropId+'.pcd'
+                fileName = os.path.join(filePath, pcdId+'_'+cropId+'.pcd')
                 with open(fileName, 'wb') as fd:
                     for chunk in r.iter_content(chunk_size=128):
                         fd.write(chunk)
+        form.loadClick(rawFileName)
+        form.mywidget.setEnabled(True)
+        self.close()
+    
+    def closeEvent(self, event):
+        event.accept()
 
 
 # Main window code
-class MainWindow(QtWidgets.QMainWindow):
+class MainWindow(QMainWindow):
     # INITIALIZATION FUNCTION
     def __init__(self):
         super(MainWindow, self).__init__()
 
         # Widget object
-        self.mywidget = QtWidgets.QWidget()
+        self.mywidget = QWidget()
 
+        # Flag to detect changes of point cloud
+        self.flagModification = False
+        self.flagWait         = False
+        self.missionId = 0
+        self.view = ''
+        self.counter = -1
         self.nuvemTxt = ''
         self.database = Second(self)
+        self.pcTemp = []
+        self.xyzData = []
+        self.zData   = []
+        self.cropFiles = ''
+        self.fname = ('','')
+        # Action index
+        self.index = 0
+        # Id of pptk window for embeding procedure
+        self.winId  = 0
+        self.winPID = 0
+        # Action history
+        self.history = []
+        # Action history before
+        self.historyBefore = []
+        # Action history after
+        self.historyAfter = []
+        # Path to main directory
+        self.applicationRoot  = os.path.dirname(os.path.abspath(__file__)) + '/'
+        # Browser root
+        self.browserRoot = '/home/adriano/git/drone-server/files/'
+        # Path to temporary folder
+        self.pathToTemp = '/var/tmp/trms/'
+        # Register for file currently open
+        if not os.path.exists(self.pathToTemp):
+            os.mkdir(self.pathToTemp)
+        # Path to cached point cloud
+        self.pathToCachedPC = self.pathToTemp + 'selected.txt'
+        # Random vector to create program ID
+        randIdVec = string.ascii_letters+'0123456789'
+        # Select 3 elements from randIdVec at random as ID
+        self.randID = random.choice(randIdVec)+random.choice(randIdVec)+random.choice(randIdVec)
 
-        self.stockWidget = QtWidgets.QWidget()
-        self.buttonsWidget = QtWidgets.QWidget()
-        self.viewWidget  = QtWidgets.QWidget()
+        self.stockWidget   = QWidget()
+        self.buttonsWidget = QWidget()
+        self.viewWidget    = QWidget()
+
+        self.editPCD = ''
 
         self.mywidget.setStyleSheet("background-color:#333333;")
         self.stockWidget.setStyleSheet("background-color:#373f49;")
@@ -248,87 +195,49 @@ class MainWindow(QtWidgets.QMainWindow):
         self.buttonsWidget.setStyleSheet("background-color:#373f49;")
 
         # Layout object
-        self.mylayout      = QtWidgets.QGridLayout(self.mywidget)
+        self.mylayout      = QGridLayout(self.mywidget)
 
-        self.buttonsLayout = QtWidgets.QGridLayout(self.buttonsWidget)
-        self.stockLayout   = QtWidgets.QGridLayout(self.stockWidget)
-        self.viewLayout    = QtWidgets.QGridLayout(self.viewWidget)
+        self.buttonsLayout = QGridLayout(self.buttonsWidget)
+        self.stockLayout   = QGridLayout(self.stockWidget)
+        self.viewLayout    = QGridLayout(self.viewWidget)
 
         self.setCentralWidget(self.mywidget)
 
         # Creating button objects
         self.currentStock  = "0"
-        self.buttonStock1A = QtWidgets.QPushButton("1A")
-        self.buttonStock1B = QtWidgets.QPushButton("1B")
-        self.buttonStock1  = QtWidgets.QPushButton("1")
-        self.buttonStock2A = QtWidgets.QPushButton("2A")
-        self.buttonStock2B = QtWidgets.QPushButton("2B")
-        self.buttonStock2C = QtWidgets.QPushButton("2C")
-        self.buttonStock2D = QtWidgets.QPushButton("2D")
-        self.buttonStock2  = QtWidgets.QPushButton("2")
-        self.buttonStock3A = QtWidgets.QPushButton("3A")
-        self.buttonStock3B = QtWidgets.QPushButton("3B")
-        self.buttonStock3  = QtWidgets.QPushButton("3")
+        self.buttonStock1A = QPushButton("1A")
+        self.buttonStock1B = QPushButton("1B")
+        self.buttonStock2A = QPushButton("2A")
+        self.buttonStock2B = QPushButton("2B")
+        self.buttonStock2C = QPushButton("2C")
+        self.buttonStock2D = QPushButton("2D")
+        self.buttonStock3A = QPushButton("3A")
+        self.buttonStock3B = QPushButton("3B")
 
-        self.buttonTop   = QtWidgets.QPushButton("Topo")
-        self.buttonSide  = QtWidgets.QPushButton("Lado")
-        self.buttonFront = QtWidgets.QPushButton("Frente")
+        self.buttonTop   = QPushButton("Topo")
+        self.buttonSide  = QPushButton("Lado")
+        self.buttonFront = QPushButton("Frente")
 
-        self.buttonLoad    = QtWidgets.QPushButton("Carregar nuvem")
-        self.buttonConfirm = QtWidgets.QPushButton("Confirmar seleção")
-        self.buttonVolume  = QtWidgets.QPushButton("Calcular volume")
-        self.buttonSave    = QtWidgets.QPushButton("Salvar nuvem")
-        self.buttonUndo    = QtWidgets.QPushButton("Desfazer última seleção")
-        self.buttonRedo    = QtWidgets.QPushButton("Refazer seleção")
-        self.buttonClose   = QtWidgets.QPushButton("Fechar")
+        self.buttonLoad    = QPushButton("Carregar nuvem")
+        self.buttonConfirm = QPushButton("Confirmar seleção")
+        self.buttonVolume  = QPushButton("Calcular volume")
+        self.buttonSave    = QPushButton("Salvar nuvem")
+        self.buttonUndo    = QPushButton("Desfazer última seleção")
+        self.buttonRedo    = QPushButton("Refazer seleção")
+        self.buttonClose   = QPushButton("Fechar")
 
         # Disabling buttons for latter usage
-        self.buttonStock1.setStyleSheet( "color: #373f49; background: #373f49;")
-        self.buttonStock1A.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock1B.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock2.setStyleSheet( "color: #373f49; background: #373f49;")
-        self.buttonStock2A.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock2B.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock2C.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock2D.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock3.setStyleSheet( "color: #373f49; background: #373f49;")
-        self.buttonStock3A.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock3B.setStyleSheet("color: #373f49; background: #373f49;")
-
-        self.buttonStock1.setEnabled(False)
-        self.buttonStock1A.setEnabled(False)
-        self.buttonStock1B.setEnabled(False)
-        self.buttonStock2.setEnabled(False)
-        self.buttonStock2A.setEnabled(False)
-        self.buttonStock2B.setEnabled(False)
-        self.buttonStock2C.setEnabled(False)
-        self.buttonStock2D.setEnabled(False)
-        self.buttonStock3.setEnabled(False)
-        self.buttonStock3A.setEnabled(False)
-        self.buttonStock3B.setEnabled(False)
-
-        self.buttonVolume.setStyleSheet( "color: #373f49; background: #373f49;")
-        self.buttonConfirm.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonSave.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonUndo.setStyleSheet( "color: #373f49; background: #373f49;")
-        self.buttonRedo.setStyleSheet("color: #373f49; background: #373f49;")
-
-        self.buttonVolume.setEnabled(False)
-        self.buttonConfirm.setEnabled(False)
-        self.buttonSave.setEnabled(False)
-        self.buttonUndo.setEnabled(False)
-        self.buttonRedo.setEnabled(False)
+        for button in [self.buttonStock1A, self.buttonStock1B, self.buttonStock2A, self.buttonStock2B, self.buttonStock2C, self.buttonStock2D, self.buttonStock3A, self.buttonStock3B, self.buttonVolume, self.buttonConfirm, self.buttonSave, self.buttonUndo, self.buttonRedo]:
+            button.setStyleSheet("color: #373f49; background: #373f49;")
+            button.setEnabled(False)
         
         # Defining button functions
-        self.buttonStock1.clicked.connect( self.stock1Click )
         self.buttonStock1A.clicked.connect(self.stock1AClick)
         self.buttonStock1B.clicked.connect(self.stock1BClick)
-        self.buttonStock2.clicked.connect( self.stock2Click )
         self.buttonStock2A.clicked.connect(self.stock2AClick)
         self.buttonStock2B.clicked.connect(self.stock2BClick)
         self.buttonStock2C.clicked.connect(self.stock2CClick)
         self.buttonStock2D.clicked.connect(self.stock2DClick)
-        self.buttonStock3.clicked.connect( self.stock3Click )
         self.buttonStock3A.clicked.connect(self.stock3AClick)
         self.buttonStock3B.clicked.connect(self.stock3BClick)
 
@@ -345,21 +254,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.buttonClose.clicked.connect(self.closeClick)
 
         # Creating a dialog box object
-        self.dialogBox = QtWidgets.QTextEdit("Área de informações")
+        self.dialogBox = QTextEdit("Área de informações")
         self.dialogBox.setReadOnly(True)
 
         # Layout setup (except pptk container)
         self.stockLayout.addWidget(self.buttonStock3B, 0, 0, 1, 2)
         self.stockLayout.addWidget(self.buttonStock3A, 0, 2, 1, 2)
-        self.stockLayout.addWidget(self.buttonStock3 , 0, 4, 1, 1)
         self.stockLayout.addWidget(self.buttonStock2D, 1, 0, 1, 1)
         self.stockLayout.addWidget(self.buttonStock2C, 1, 1, 1, 1)
         self.stockLayout.addWidget(self.buttonStock2B, 1, 2, 1, 1)
         self.stockLayout.addWidget(self.buttonStock2A, 1, 3, 1, 1)
-        self.stockLayout.addWidget(self.buttonStock2 , 1, 4, 1, 1)
         self.stockLayout.addWidget(self.buttonStock1B, 2, 0, 1, 2)
         self.stockLayout.addWidget(self.buttonStock1A, 2, 2, 1, 2)
-        self.stockLayout.addWidget(self.buttonStock1 , 2, 4, 1, 1)
 
         self.viewLayout.addWidget(self.buttonTop  , 0, 0)
         self.viewLayout.addWidget(self.buttonSide , 0, 1)
@@ -381,28 +287,37 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setMinimumSize(1000,500)
         # Creating a dummy pptk window
         self.setPointCloud([1,1,1],[1], [])
-        if editPCD:
-            self.loadClick(editPCD)
+
+    # Search for a window called "viewer"
+    def findViewer(self, list):
+        children = list.query_tree().children
+        q = 0
+        for w in children:
+            subchildren = w.query_tree().children
+            for xwin in subchildren:
+                if xwin.get_wm_class() is not None:
+                    if ("viewer" in xwin.get_wm_class()):
+                        self.winId  = xwin.id
+                        self.winPID = os.popen('xprop -id '+str(self.winId)+' | grep "PID" | sed "s/_NET_WM_PID(CARDINAL) = //"').read()[:-1]
+            q += 1
 
     def loadPointCloud(self, nuvemTxt):
         # Try to load the txt point cloud into a numpy float matrix.
-        global xyz, z, view
         try:
-            xyz = np.loadtxt(nuvemTxt, delimiter= ' ')
+            self.xyzData = np.loadtxt(nuvemTxt, delimiter= ' ')
 
             # Filter x, y and z coordinates
-            xyz = xyz[:,:3]
+            self.xyzData = self.xyzData[:,:3]
             # Register z values (used to coloring)
-            z = xyz[:,2]
+            self.zData = self.xyzData[:,2]
 
             # Load point cloud to pptk viewer referencing z axis to colors
-            self.setPointCloud(xyz, z, view)
+            self.setPointCloud(self.xyzData, self.zData, self.view)
         except:
             self.dialogBox.textCursor().insertText('Erro: arquivo inválido!\n')
             self.repaint()
 
     def setPointCloud(self, pcVector, filter, newView):
-        global view
         if newView:
             # Filter z data to exclude outliers and help colouring
             bxplt = plt.boxplot(filter)
@@ -412,170 +327,184 @@ class MainWindow(QtWidgets.QMainWindow):
             newView.load(pcVector, filter)
             newView.color_map('jet',scale=[m1, M2])
             # view.set(phi = 0, theta = np.pi/2)
-            view.set(phi=-(np.pi/2-0.1933), theta=np.pi/2)
+            self.view.set(phi=-(np.pi/2-0.1933), theta=np.pi/2)
         else:
-            view = pptk.viewer(pcVector)
+            self.view = pptk.viewer(pcVector)
             self.embedPC()
 
     # FUNCTION: Embed point cloud
     def embedPC(self):
         self.xlibList = Xlib.display.Display().screen().root
-        findViewer(self.xlibList)
+        self.findViewer(self.xlibList)
         # Creating a window object
-        self.window = QtGui.QWindow.fromWinId(winId)
-        self.window.setFlags(QtCore.Qt.FramelessWindowHint)
-        # self.window.setFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.X11BypassWindowManagerHint)
+        self.window = QtGui.QWindow.fromWinId(self.winId)
+        # self.window.setFlags(QtCore.Qt.FramelessWindowHint)
+        self.window.setFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.X11BypassWindowManagerHint)
         # Defining container object
         self.windowcontainer = self.createWindowContainer(self.window, self.mywidget)
+        self.windowcontainer.setFocusPolicy(QtCore.Qt.TabFocus)
         # Setting container to layout
-        time.sleep(.1)
+        time.sleep(.3)
         self.mylayout.addWidget(self.windowcontainer, 0, 1, 4, 5)
-
+        pass
     # FUNCTION: Clear temporary files
     def clearTempFiles(self):
-        os.system('kill -9 ' + winPID)
-        # if os.path.exists(pathToTemp):
-            # print("Clearing cached files!")
-            # shutil.rmtree(pathToTemp)
-
-    def stock1Click(self):
-        if currentStockManager(self, self.buttonStock1B, '1'):
-            for pcFile in pcTemp:
-                if '_1.txt' in pcFile:
-                    self.nuvemTxt = pcFile
-            # Try to load the txt point cloud into a numpy float matrix.
-            self.loadPointCloud(self.nuvemTxt)
+        os.system('kill -9 ' + self.winPID)
             
     def stock1AClick(self):
-        if currentStockManager(self, self.buttonStock1B, '1A'):
-            for pcFile in pcTemp:
+        if self.currentStockManager(self.buttonStock1A, '1A'):
+            for pcFile in self.pcTemp:
                 if '_1A.txt' in pcFile:
                     self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
             self.loadPointCloud(self.nuvemTxt)
             
     def stock1BClick(self):
-        if currentStockManager(self, self.buttonStock1B, '1B'):
-            for pcFile in pcTemp:
+        if self.currentStockManager(self.buttonStock1B, '1B'):
+            for pcFile in self.pcTemp:
                 if '_1B.txt' in pcFile:
                     self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
             self.loadPointCloud(self.nuvemTxt)
-            
-    def stock2Click(self):
-        if currentStockManager(self, self.buttonStock2, '2'):
-            for pcFile in pcTemp:
-                if '_2.txt' in pcFile:
-                    self.nuvemTxt = pcFile
-            # Try to load the txt point cloud into a numpy float matrix.
-            self.loadPointCloud(self.nuvemTxt)
-            
+
     def stock2AClick(self):
-        if currentStockManager(self, self.buttonStock2A, '2A'):
-            for pcFile in pcTemp:
+        if self.currentStockManager(self.buttonStock2A, '2A'):
+            for pcFile in self.pcTemp:
                 if '_2A.txt' in pcFile:
                     self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
             self.loadPointCloud(self.nuvemTxt)
-            
+
     def stock2BClick(self):
-        if currentStockManager(self, self.buttonStock2B, '2B'):
-            for pcFile in pcTemp:
+        if self.currentStockManager(self.buttonStock2B, '2B'):
+            for pcFile in self.pcTemp:
                 if '_2B.txt' in pcFile:
                     self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
             self.loadPointCloud(self.nuvemTxt)
             
     def stock2CClick(self):
-        if currentStockManager(self, self.buttonStock2C, '2C'):
-            for pcFile in pcTemp:
+        if self.currentStockManager(self.buttonStock2C, '2C'):
+            for pcFile in self.pcTemp:
                 if '_2C.txt' in pcFile:
                     self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
             self.loadPointCloud(self.nuvemTxt)
             
     def stock2DClick(self):
-        if currentStockManager(self, self.buttonStock2D, '2D'):
-            for pcFile in pcTemp:
+        if self.currentStockManager(self.buttonStock2D, '2D'):
+            for pcFile in self.pcTemp:
                 if '_2D.txt' in pcFile:
                     self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
             self.loadPointCloud(self.nuvemTxt)
 
-    def stock3Click(self):
-        if currentStockManager(self, self.buttonStock3, '3'):
-            for pcFile in pcTemp:
-                if '_3.txt' in pcFile:
-                    self.nuvemTxt = pcFile
-            # Try to load the txt point cloud into a numpy float matrix.
-            self.loadPointCloud(self.nuvemTxt)
-
     def stock3AClick(self):
-        if currentStockManager(self, self.buttonStock3A, '3A'):
-            for pcFile in pcTemp:
+        if self.currentStockManager(self.buttonStock3A, '3A'):
+            for pcFile in self.pcTemp:
                 if '_3A.txt' in pcFile:
                     self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
             self.loadPointCloud(self.nuvemTxt)
 
     def stock3BClick(self):
-        if currentStockManager(self, self.buttonStock3B, '3B'):
-            for pcFile in pcTemp:
+        if self.currentStockManager(self.buttonStock3B, '3B'):
+            for pcFile in self.pcTemp:
                 if '_3B.txt' in pcFile:
                     self.nuvemTxt = pcFile
             # Try to load the txt point cloud into a numpy float matrix.
             self.loadPointCloud(self.nuvemTxt)
+    
+    def currentStockManager(self, button, currentStockSelection):
+        for butt in [self.buttonStock1A, self.buttonStock1B, self.buttonStock2A, self.buttonStock2B, self.buttonStock2C, self.buttonStock2D, self.buttonStock3A, self.buttonStock3B]:
+            if butt.isEnabled():
+                butt.setStyleSheet("color: black; background: #373f49;")
+
+        if self.flagModification:
+            quit_msg = "Deseja salvar as últimas modificações?"
+            mBox = QMessageBox(self)
+            mBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+            mBox.setWindowTitle('Modificações pendentes!')
+            mBox.setText(quit_msg)
+            buttonYes = mBox.button(QMessageBox.Yes)
+            buttonYes.setText('Sim')
+            buttonNo = mBox.button(QMessageBox.No)
+            buttonNo.setText('Não')
+            buttonCancel = mBox.button(QMessageBox.Cancel)
+            buttonCancel.setText('Cancelar')
+            reply = mBox.exec()
+            if reply == QMessageBox.Yes:
+                self.saveClick()
+            elif reply == QMessageBox.Cancel:
+                return False
+            elif reply == QMessageBox.No:
+                self.flagModification = False
+                self.historyBefore = []
+                self.history = []
+                self.historyAfter = []
+                self.index = 0
+                self.counter = -1
+                self.buttonUndo.setStyleSheet("color: #373f49; background: #373f49;")
+                self.buttonUndo.setEnabled(False)
+                self.buttonRedo.setStyleSheet("color: #373f49; background: #373f49;")
+                self.buttonRedo.setEnabled(False)
+                self.buttonSave.setStyleSheet("color: #373f49; background: #373f49;")
+                self.buttonSave.setEnabled(False)
+                
+        if currentStockSelection == self.currentStock:
+            self.currentStock = '0'
+            self.loadPointCloud(self.pcTemp[0])
+            button.setStyleSheet("color: black; background: #373f49;")
+            self.setWindowTitle('PC Selector: Missão ' + self.missionId)
+            return False
+        else:
+            button.setStyleSheet("color: white; background: darkgreen;")
+            self.setWindowTitle('PC Selector: Missão ' + self.missionId + ' Pilha ' + currentStockSelection)
+            self.currentStock = currentStockSelection
+            return True
 
     def topClick(self):
-        global view
-        view.set(phi = 0, theta = np.pi/2)
+        self.view.set(phi = 0, theta = np.pi/2)
 
     def frontClick(self):
-        global view
-        view.set(phi = 0, theta = 0)
+        self.view.set(phi = 0, theta = 0)
 
     def sideClick(self):
-        global view
-        view.set(phi = np.pi/2, theta = 0)
+        self.view.set(phi = np.pi/2, theta = 0)
     
     def browseFiles(self):
-        global fname
+        self.flagWait = False
         self.dialogLoad.close()
         print('browse files')
         # Open a dialog box
-        fname = QtWidgets.QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
-        # If nothing is selected: return
-        if fname ==('',''):
-            self.dialogBox.textCursor().insertText('Nenhuma nuvem escolhida!\n')
-            self.repaint()
-            return
+        self.fname = QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", self.browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
 
     def browseDB(self):
-        global fname
+        self.flagWait = True
+        self.fname = ('','')
         self.dialogLoad.close()
         self.database.show()
+        self.mywidget.setDisabled(True)
+        
 
     # CLICK: Load new point cloud
     def loadClick(self, cloudPath):
-        # Modified global variables
-        global view, xyz, fname, cropFiles, historyAfter, history, historyBefore, counter, index, pcTemp, flagModification
-
-        if flagModification:
+        if self.flagModification:
             quit_msg = "Deseja salvar as últimas modificações?"
-            mBox = QtWidgets.QMessageBox(self)
-            mBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Cancel)
+            mBox = QMessageBox(self)
+            mBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
             mBox.setWindowTitle('Modificações pendentes!')
             mBox.setText(quit_msg)
-            buttonYes = mBox.button(QtWidgets.QMessageBox.Yes)
+            buttonYes = mBox.button(QMessageBox.Yes)
             buttonYes.setText('Sim')
-            buttonNo = mBox.button(QtWidgets.QMessageBox.No)
+            buttonNo = mBox.button(QMessageBox.No)
             buttonNo.setText('Não')
-            buttonCancel = mBox.button(QtWidgets.QMessageBox.Cancel)
+            buttonCancel = mBox.button(QMessageBox.Cancel)
             buttonCancel.setText('Cancelar')
             reply = mBox.exec()
-            if reply == QtWidgets.QMessageBox.Yes:
+            if reply == QMessageBox.Yes:
                 self.saveClick()
-            elif reply == QtWidgets.QMessageBox.Cancel:
+            elif reply == QMessageBox.Cancel:
                 return
 
         # Status message
@@ -584,27 +513,44 @@ class MainWindow(QtWidgets.QMainWindow):
         self.repaint()
 
         if cloudPath:
-            fname = [cloudPath,0]
+            self.fname = [cloudPath,0]
+            self.missionId = cloudPath.split('/')[-1].split('.')[0]
         else:
-            self.dialogLoad = QtWidgets.QDialog()
-            self.buttonHD = QtWidgets.QPushButton("Disco rígido", self.dialogLoad)
+            self.dialogLoad = QDialog()
+            self.buttonHD = QPushButton("Disco rígido", self.dialogLoad)
             self.buttonHD.move(10,15)
             self.buttonHD.clicked.connect(self.browseFiles)
-            self.buttonDB = QtWidgets.QPushButton("Banco de dados", self.dialogLoad)
+            self.buttonDB = QPushButton("Banco de dados", self.dialogLoad)
             self.buttonDB.move(110,15)
             self.buttonDB.clicked.connect(self.browseDB)
             self.dialogLoad.setGeometry(600,300,235,50)
             self.dialogLoad.setWindowTitle("Fonte de arquivos")
             self.dialogLoad.exec()
-        nuvemPcd = fname[0]
+            if self.flagWait:
+                self.dialogBox.clear()
+                self.dialogBox.textCursor().insertText('Escolhendo nuvem do banco de dados...\n')
+                self.repaint()
+                return
+            if not self.fname == ('',''):
+                self.missionId = self.fname[0].split('/')[-2].split('missao')[1]
+        
+        # If nothing is selected: return
+        if self.fname == ('',''):
+            self.dialogBox.clear()
+            self.dialogBox.textCursor().insertText('Nenhuma nuvem escolhida!\n')
+            self.repaint()
+            return
+        nuvemPcd = self.fname[0]
+
+        cropPath = os.path.join(self.pathToTemp, 'crops' + self.missionId)
         
         if nuvemPcd == '':
             return
-        self.nuvemTxt = os.path.join(pathToTemp, nuvemPcd.split('/')[-1].split('.')[0]+'.txt')
+        self.nuvemTxt = os.path.join(self.pathToTemp, nuvemPcd.split('/')[-1].split('.')[0]+'.txt')
         if os.path.exists(self.nuvemTxt):
             print("Cloud " + nuvemPcd.split('/')[-1] + " loaded from cache!")
         else:
-            os.system('extconverter '+nuvemPcd+' -D '+pathToTemp)
+            os.system('extconverter '+nuvemPcd+' -D '+self.pathToTemp)
 
         # Status message
         self.dialogBox.clear()
@@ -613,106 +559,81 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Try to load the txt point cloud into a numpy float matrix.
         try:
-            xyz = np.loadtxt(self.nuvemTxt, delimiter= ' ')
+            self.xyzData = np.loadtxt(self.nuvemTxt, delimiter= ' ')
         except:
             self.dialogBox.textCursor().insertText('Erro: arquivo inválido!\n')
             self.repaint()
             return
 
-        pcTemp = []
-        pcTemp.append(self.nuvemTxt)
+        self.pcTemp = []
+        self.pcTemp.append(self.nuvemTxt)
 
         # Filter x, y and z coordinates
-        xyz = xyz[:,:3]
+        self.xyzData = self.xyzData[:,:3]
         # Register z values (used to coloring)
-        z = xyz[:,2]
+        self.zData = self.xyzData[:,2]
 
         # Load point cloud to pptk viewer referencing z axis to colors
-        self.setPointCloud(xyz, z, view)
+        self.setPointCloud(self.xyzData, self.zData, self.view)
         
-        flagModification = False
-        historyBefore = []
-        history = []
-        historyAfter = []
-        index = 0
-        counter = -1
-        self.buttonUndo.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonUndo.setEnabled(False)
-        self.buttonRedo.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonRedo.setEnabled(False)
-        self.buttonSave.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonSave.setEnabled(False)
+        self.flagModification = False
+        self.historyBefore = []
+        self.history = []
+        self.historyAfter = []
+        self.index = 0
+        self.counter = -1
 
-        cropPath = os.path.join(os.path.dirname(nuvemPcd),'crops')
-        self.buttonStock1.setStyleSheet( "color: #373f49; background: #373f49;")
-        self.buttonStock1A.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock1B.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock2.setStyleSheet( "color: #373f49; background: #373f49;")
-        self.buttonStock2A.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock2B.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock2C.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock2D.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock3.setStyleSheet( "color: #373f49; background: #373f49;")
-        self.buttonStock3A.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock3B.setStyleSheet("color: #373f49; background: #373f49;")
-        self.buttonStock1.setEnabled(False)
-        self.buttonStock1A.setEnabled(False)
-        self.buttonStock1B.setEnabled(False)
-        self.buttonStock2.setEnabled(False)
-        self.buttonStock2A.setEnabled(False)
-        self.buttonStock2B.setEnabled(False)
-        self.buttonStock2C.setEnabled(False)
-        self.buttonStock2D.setEnabled(False)
-        self.buttonStock3.setEnabled(False)
-        self.buttonStock3A.setEnabled(False)
-        self.buttonStock3B.setEnabled(False)
+        # # Disabling buttons for latter usage
+        for button in [self.buttonStock1A, self.buttonStock1B, self.buttonStock2A, self.buttonStock2B, self.buttonStock2C, self.buttonStock2D, self.buttonStock3A, self.buttonStock3B, self.buttonSave, self.buttonUndo, self.buttonRedo]:
+            button.setStyleSheet("color: #373f49; background: #373f49;")
+            button.setEnabled(False)
 
-        if os.path.exists(cropPath):
-            self.dialogBox.textCursor().insertText('Carregando crops!\n')
-            self.repaint()
-            cropFiles = os.popen('ls '+cropPath).read().split('\n')[0:-1]
-            for crop in cropFiles:
-                cropTxt = os.path.join(pathToTemp,crop.split('.')[0]+'.txt')
-                pcTemp.append(cropTxt)
-                if os.path.exists(cropTxt):
-                    print("Crop " + crop + " loaded from cache!")
-                else:
-                    os.system('extconverter '+os.path.join(cropPath,crop)+' -D '+pathToTemp)
-                if "_1.pcd" in crop:
-                    self.buttonStock1.setStyleSheet( "color: black; background: #373f49;")
-                    self.buttonStock1A.setStyleSheet("color: black; background: #373f49;")
-                    self.buttonStock1B.setStyleSheet("color: black; background: #373f49;")
-                    self.buttonStock1.setEnabled(True)
-                    self.buttonStock1A.setEnabled(True)
-                    self.buttonStock1B.setEnabled(True)
-                elif "_2.pcd" in crop:
-                    self.buttonStock2.setStyleSheet( "color: black; background: #373f49;")
-                    self.buttonStock2A.setStyleSheet("color: black; background: #373f49;")
-                    self.buttonStock2B.setStyleSheet("color: black; background: #373f49;")
-                    self.buttonStock2C.setStyleSheet("color: black; background: #373f49;")
-                    self.buttonStock2D.setStyleSheet("color: black; background: #373f49;")
-                    self.buttonStock2.setEnabled(True)
-                    self.buttonStock2A.setEnabled(True)
-                    self.buttonStock2B.setEnabled(True)
-                    self.buttonStock2C.setEnabled(True)
-                    self.buttonStock2D.setEnabled(True)
-                elif "_3.pcd" in crop:
-                    self.buttonStock3.setStyleSheet( "color: black; background: #373f49;")
-                    self.buttonStock3A.setStyleSheet("color: black; background: #373f49;")
-                    self.buttonStock3B.setStyleSheet("color: black; background: #373f49;")
-                    self.buttonStock3.setEnabled(True)
-                    self.buttonStock3A.setEnabled(True)
-                    self.buttonStock3B.setEnabled(True)
+        if not os.path.exists(cropPath):
+            os.mkdir(cropPath)
+        
+        self.dialogBox.textCursor().insertText('Carregando crops!\n')
+        self.repaint()
+        self.cropFiles = os.popen('ls '+cropPath).read().split('\n')[0:-1]
+        for crop in self.cropFiles:
+            cropTxt = os.path.join(cropPath, crop.split('.')[0]+'.txt')
+            self.pcTemp.append(cropTxt)
+            if os.path.exists(cropTxt):
+                print("Crop " + crop + " loaded from cache!")
+            else:
+                os.system('extconverter '+os.path.join(cropPath, crop)+' -D '+cropPath)
+            if "_1A.pcd" in crop:
+                self.buttonStock1A.setStyleSheet("color: black; background: #373f49;")
+                self.buttonStock1A.setEnabled(True)
+            elif "_1B.pcd" in crop:
+                self.buttonStock1B.setStyleSheet("color: black; background: #373f49;")
+                self.buttonStock1B.setEnabled(True)
+            elif "_2A.pcd" in crop:
+                self.buttonStock2A.setStyleSheet("color: black; background: #373f49;")
+                self.buttonStock2A.setEnabled(True)
+            elif "_2B.pcd" in crop:
+                self.buttonStock2B.setStyleSheet("color: black; background: #373f49;")
+                self.buttonStock2B.setEnabled(True)
+            elif "_2C.pcd" in crop:
+                self.buttonStock2C.setStyleSheet("color: black; background: #373f49;")
+                self.buttonStock2C.setEnabled(True)
+            elif "_2D.pcd" in crop:
+                self.buttonStock2D.setStyleSheet("color: black; background: #373f49;")
+                self.buttonStock2D.setEnabled(True)
+            elif "_3A.pcd" in crop:
+                self.buttonStock3A.setStyleSheet("color: black; background: #373f49;")
+                self.buttonStock3A.setEnabled(True)
+            elif "_3B.pcd" in crop:
+                self.buttonStock3B.setStyleSheet("color: black; background: #373f49;")
+                self.buttonStock3B.setEnabled(True)
         
         ### Ajustar título da janela pra ser compatível com o sub-pilha alvo
-        mission = fname[0].split('/missao')[1][:4]
-        subpile = fname[0][-6:][:-4]
+        subpile = self.fname[0][-6:][:-4]
         # mission = '0001'
         # subpile = '3B'
         if subpile in ['1A', '1B', '2A', '2B', '2C', '2D', '3A', '3B']:
-            self.setWindowTitle('PC Selector: Missão ' + mission + ' Pilha ' + subpile)
+            self.setWindowTitle('PC Selector: Missão ' + self.missionId + ' Pilha ' + subpile)
         else:
-            self.setWindowTitle('PC Selector: Missão ' + mission)
+            self.setWindowTitle('PC Selector: Missão ' + self.missionId)
             
         self.buttonConfirm.setStyleSheet("color: black; background: #373f49;")
         self.buttonVolume.setStyleSheet("color: black; background: #373f49;")
@@ -722,9 +643,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # CLICK: Confirm modification
     def confirmClick(self):
-        # Modified global variables
-        global xyz, view, flagModification, counter, index, history, historyAfter, historyBefore
-        
         # Status message
         self.dialogBox.clear()
         self.dialogBox.textCursor().insertText('Buscando ponto selecionados...\n')
@@ -732,7 +650,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         ## Segmentar Nuvem de Pontos ##
         # Collects selected points indexes
-        sel = view.get('selected')
+        sel = self.view.get('selected')
         nSel = len(sel)
         # Create a numpy matrixes of selected points
         if nSel == 0:
@@ -743,25 +661,25 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         # Create a vector of selected points
-        xyz = xyz[sel,:]
+        self.xyzData = self.xyzData[sel,:]
         # Register z values (used to coloring)
-        z = xyz[:,2]
+        self.zData = self.xyzData[:,2]
 
         # Embed pptk
-        self.setPointCloud(xyz, z, view)
+        self.setPointCloud(self.xyzData, self.zData, self.view)
         
         # Manage action history
-        counter += 1
-        index = counter
-        history.append(index)
-        historyBefore = history
+        self.counter += 1
+        self.index = self.counter
+        self.history.append(self.index)
+        self.historyBefore = self.history
 
         # Save current cloud in cache
-        np.savetxt(pathToCachedPC, xyz)
-        np.savetxt(pathToTemp+ID+str(counter),xyz)
+        np.savetxt(self.pathToCachedPC, self.xyzData)
+        np.savetxt(self.pathToTemp+self.randID+str(self.counter),self.xyzData)
 
         # Set modification flags
-        flagModification = True
+        self.flagModification = True
         # Enable folowing buttons
         self.buttonVolume.setStyleSheet("color: black; background: #373f49;")
         self.buttonSave.setStyleSheet("color: black; background: #373f49;")
@@ -777,41 +695,38 @@ class MainWindow(QtWidgets.QMainWindow):
    
     # CLICK: Volume calculation
     def calcClick(self):
-        if counter == -1:
-            np.savetxt(pathToCachedPC, xyz)
-        volume = os.popen('python3 ' + os.path.join(applicationRoot,'mainh.py ') + pathToCachedPC).read().split('\n')[0]
+        if self.counter == -1:
+            np.savetxt(self.pathToCachedPC, self.xyzData)
+        volume = os.popen('python3 ' + os.path.join(self.applicationRoot,'mainh.py ') + self.pathToCachedPC).read().split('\n')[0]
         self.dialogBox.textCursor().insertText("Volume total = " + volume + " m³.\n")
         self.repaint()
         print("Volume total = " + volume + " m³.\n")
 
     # CLICK: Save current point cloud
     def saveClick(self):
-        # Modified global variables
-        global flagModification
-
         self.dialogBox.textCursor().insertText('Salvando nuvem de pontos...\n')
         self.repaint()
 
         ## Save on HD
-        fname = QtWidgets.QFileDialog.getSaveFileName(self, 'Salvar nuvem de pontos', browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
-        if fname == ('',''):
+        self.fname = QFileDialog.getSaveFileName(self, 'Salvar nuvem de pontos', self.browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
+        if self.fname == ('',''):
             self.dialogBox.textCursor().insertText('Operação "salvar" cancelada!\n')
             self.repaint()
             return
-        file = open(fname[0],'w') ### Transformat em .pcd
-        text = open(pathToCachedPC,'r').read()
+        file = open(self.fname[0],'w') ### Transformat em .pcd
+        text = open(self.pathToCachedPC,'r').read()
         file.write(text)
         file.close()
-        self.dialogBox.textCursor().insertText('Nuvem de pontos salva em:\n'+fname[0]+'\n')
-        flagModification = False
+        self.dialogBox.textCursor().insertText('Nuvem de pontos salva em:\n'+self.fname[0]+'\n')
+        self.flagModification = False
 
         ## Save on database
-        # name = fname[0].split('/')[-1]
+        # name = self.fname[0].split('/')[-1]
         # md5hash = os.popen('md5sum '+name).read().split(' ')[0]
         # headers = {'md5hash':md5hash,'user':'1'}
         # files = {'file': (name, open(name, 'rb'), 'text/plain')}
         # r = requests.post('http://localhost:8503/pointCloudData', headers=headers, files=files)
-        # flagModification = False
+        # self.flagModification = False
         # self.dialogBox.textCursor().insertText('Nuvem de pontos salva em:\n'+r.text+'\n')
 
         self.repaint()
@@ -819,33 +734,31 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # CLICK: Return to previous modification state
     def undoClick(self):
-        global index, historyAfter, historyBefore
         # Manage action history
-        historyAfter.insert(0, historyBefore.pop())
-        if not historyBefore:
-            index = -1
+        self.historyAfter.insert(0, self.historyBefore.pop())
+        if not self.historyBefore:
+            self.index = -1
             nuvem = self.nuvemTxt###
             self.buttonUndo.setStyleSheet("color: #373f49; background: #373f49;")
             self.buttonUndo.setEnabled(False)
         else:
-            index = historyBefore[-1]
-            nuvem = pathToTemp+ID+str(index)
+            self.index = self.historyBefore[-1]
+            nuvem = self.pathToTemp+self.randID+str(self.index)
         try:
-            xyz = np.loadtxt(nuvem, delimiter= ' ')
+            self.xyzData = np.loadtxt(nuvem, delimiter= ' ')
         except:
             self.dialogBox.textCursor().insertText('Erro: arquivo inválido!\n')
             self.repaint()
-            pass
 
         # Filter x, y and z coordinates
-        xyz = xyz[:,:3]
+        self.xyzData = self.xyzData[:,:3]
         # Register z values (used to coloring)
-        z = xyz[:,2]
+        self.zData = self.xyzData[:,2]
         # Save current cloud in cache
-        np.savetxt(pathToCachedPC, xyz)
+        np.savetxt(self.pathToCachedPC, self.xyzData)
 
         # Load point cloud to pptk viewer referencing z axis to colors
-        self.setPointCloud(xyz, z, view)
+        self.setPointCloud(self.xyzData, self.zData, self.view)
         self.repaint()
         self.buttonRedo.setStyleSheet("color: black; background: #373f49;")
         self.buttonRedo.setEnabled(True)
@@ -853,26 +766,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # CLICK: Return to later modification state after Undo
     def redoClick(self):
-        global index, historyAfter, historyBefore
-        historyBefore.append(historyAfter.pop(0))
-        index = historyBefore[-1]
-        nuvem = pathToTemp+ID+str(index)
+        self.historyBefore.append(self.historyAfter.pop(0))
+        self.index = self.historyBefore[-1]
+        nuvem = self.pathToTemp+self.randID+str(self.index)
         try:
-            xyz = np.loadtxt(nuvem, delimiter= ' ')
+            self.xyzData = np.loadtxt(nuvem, delimiter= ' ')
         except:
             self.dialogBox.textCursor().insertText('Erro: arquivo inválido!\n')
             self.repaint()
-            pass
 
         # Filter x, y and z coordinates
-        xyz = xyz[:,:3]
+        self.xyzData = self.xyzData[:,:3]
         # Register z values (used to coloring)
-        z = xyz[:,2]
+        self.zData = self.xyzData[:,2]
         # Save current cloud in cache
-        np.savetxt(pathToCachedPC, xyz)
+        np.savetxt(self.pathToCachedPC, self.xyzData)
         # Load point cloud to pptk viewer referencing z axis to colors
-        self.setPointCloud(xyz, z, view)
-        if not historyAfter:
+        self.setPointCloud(self.xyzData, self.zData, self.view)
+        if not self.historyAfter:
             self.buttonRedo.setStyleSheet("color: #373f49; background: #373f49;")
             self.buttonRedo.setEnabled(False)
         self.buttonUndo.setStyleSheet("color: black; background: #373f49;")
@@ -887,101 +798,59 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # EVENT: Close window event
     def closeEvent(self, event):
-        global flagModification
-        if flagModification:
+        if self.flagModification:
             quit_msg = "Deseja salvar as últimas modificações?"
-            mBox = QtWidgets.QMessageBox(self)
-            mBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Cancel)
+            mBox = QMessageBox(self)
+            mBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
             mBox.setWindowTitle('Modificações pendentes!')
             mBox.setText(quit_msg)
-            buttonYes = mBox.button(QtWidgets.QMessageBox.Yes)
+            buttonYes = mBox.button(QMessageBox.Yes)
             buttonYes.setText('Sim')
-            buttonNo = mBox.button(QtWidgets.QMessageBox.No)
+            buttonNo = mBox.button(QMessageBox.No)
             buttonNo.setText('Não')
-            buttonCancel = mBox.button(QtWidgets.QMessageBox.Cancel)
+            buttonCancel = mBox.button(QMessageBox.Cancel)
             buttonCancel.setText('Cancelar')
             reply = mBox.exec()
-            if reply == QtWidgets.QMessageBox.Yes:
+            if reply == QMessageBox.Yes:
                 self.saveClick()
-            elif reply == QtWidgets.QMessageBox.No:
+            elif reply == QMessageBox.No:
                 self.clearTempFiles()
                 event.accept()
-            elif reply == QtWidgets.QMessageBox.Cancel:
+            elif reply == QMessageBox.Cancel:
                 event.ignore()
         else:
             self.clearTempFiles()
             event.accept()
 
+def main():
+    try:
+        args      = argv[1].split()
+        indexEdit = args.index('--edit')
+        form.editPCD   = args[indexEdit+1]
+        form.loadClick(form.editPCD)
+    except:
+        print('Invalid point cloud argument.')
 
-# Random vector to create program ID
-randIdVec = string.ascii_letters+'0123456789'
-# Select 3 elements from randIdVec at random as ID
-ID = random.choice(randIdVec)+random.choice(randIdVec)+random.choice(randIdVec)
-# Action counter
-counter = -1
-# Action index
-index = 0
-# Action history
-history = []
-# Action history before
-historyBefore = []
-# Action history after
-historyAfter = []
-# Detect operational system
-OS = platform.system()
-if OS == 'Linux':
-    import Xlib
-    import Xlib.display
-else:
-    print("This application is Linux exclusive")
-    sys.exit()
-
-# GLOBAL VARIABLES
-# Id of pptk window for embeding procedure
-winId = 0
-winPID = 0
-# Path to main directory
-applicationRoot  = os.path.dirname(os.path.abspath(__file__)) + '/'
-# Browser root
-browserRoot = '/home/adriano/git/drone-server/files/'
-# Path to temporary folder
-pathToTemp = '/var/tmp/trms/'
-# Register for file currently open
-fname = ('','')
-cropFiles = ''
-pcTemp = []
-if not os.path.exists(pathToTemp):
-    os.mkdir(pathToTemp)
-# Path to cached point cloud
-pathToCachedPC = pathToTemp + 'selected.txt'
-# Flag to detect changes of point cloud
-flagModification = False
-
-editPCD = ''
-# sys.argv.append('--edit /var/tmp/trms/nuvem_2020-09-14T10:31:00_3A.txt')
-argv = sys.argv
-# argv = ['/home/adriano/git/volumecarvao/pcselector.py', '--edit /home/adriano/git/drone-server/files/missao0001/crops/nuvem_2020-09-14T10:31:00_3B.pcd']
-try:
-    args      = argv[1].split()
-    indexEdit = args.index('--edit')
-    editPCD   = args[indexEdit+1]
-except:
-    print('Invalid point cloud argument.')
-
-if __name__ == '__main__':
-    app = QtWidgets.QApplication(argv)
-    app.setStyle("fusion")
-    form = MainWindow()
-    if editPCD:
-        mission = fname[0].split('/missao')[1][:4]
-        subpile = fname[0][-6:][:-4]
+    if form.editPCD:###fname
+        self.missionId = form.fname[0].split('/missao')[1][:4]###fname, will fail, fname=('','')
+        subpile = form.fname[0][-6:][:-4]
         if subpile in ['1A', '1B', '2A', '2B', '2C', '2D', '3A', '3B']:
-            form.setWindowTitle('PC Selector: Missão ' + mission + ' Pilha ' + subpile)
+            form.setWindowTitle('PC Selector: Missão ' + self.missionId + ' Pilha ' + subpile)
         else:
-            form.setWindowTitle('PC Selector: Missão ' + mission)
+            form.setWindowTitle('PC Selector: Missão ' + self.missionId)
     else:
         form.setWindowTitle('PC Selector')
     #form.setGeometry(100, 100, 600, 500)
     form.show()
 
     sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    # sys.argv.append('--edit /var/tmp/trms/nuvem_2020-09-14T10:31:00_3A.txt')
+    argv = sys.argv
+    # argv = ['/home/adriano/git/volumecarvao/pcselector.py', '--edit /home/adriano/git/drone-server/files/missao0001/crops/nuvem_2020-09-14T10:31:00_3B.pcd']
+    
+    app = QApplication(argv)
+    app.setStyle("fusion")
+    form = MainWindow()
+    main()
