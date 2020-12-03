@@ -17,7 +17,7 @@ import pptk
 import sys
 import os
 from   PyQt5 import QtWidgets, QtGui, QtCore
-from   PyQt5.QtWidgets import QMainWindow, QTableWidget, QTableWidgetItem, QApplication, QAbstractItemView, QWidget, QGridLayout, QPushButton, QTextEdit, QMessageBox, QFileDialog, QDialog
+from   PyQt5.QtWidgets import QMainWindow, QTableWidget, QTableWidgetItem, QApplication, QAbstractItemView, QWidget, QGridLayout, QPushButton, QTextEdit, QMessageBox, QFileDialog, QDialog, QComboBox
 from   descartes import PolygonPatch
 from   PIL import Image
 import time
@@ -38,11 +38,8 @@ class Second(QMainWindow):
         self.setCentralWidget(self.mywidget)
         # pylint: disable=line-too-long
         payload = {"responseType":"fieldList", "initDate":"2010-01-01 00:00:00", "endDate":"2100-10-31 23:59:59"}
-        r = requests.get('http://localhost:8503/pointCloudData', params=payload)
-        self.dbDatas = json.loads(r.text)
-        self.dbData = self.dbDatas[0]
-        self.dbData['id']
-        print('browse database')
+        dbRequest = requests.get('http://localhost:8503/pointCloudData', params=payload)
+        self.dbDatas = json.loads(dbRequest.text)
         idList      = list()
         initList    = list()
         missionList = list()
@@ -101,8 +98,10 @@ class Second(QMainWindow):
         self.close()
 
     def selectAction(self):
-        print('Select action')
+        if self.debugMode:
+            print('Select load action')
         pcdId = self.tableWidget.selectedItems()[0].text()
+        form.dbId = pcdId
         payload = {"responseType":"pcdFile","id":pcdId,"pcdFile":"raw"}
         r = requests.get('http://localhost:8503/pointCloudData', params=payload)
         headerData = json.dumps(dict(r.headers))
@@ -147,6 +146,7 @@ class MainWindow(QMainWindow):
         self.flagModification = False
         self.flagWait         = False
         self.missionId = 0
+        self.availablePiles = []
         self.view = ''
         self.counter = -1
         self.nuvemTxt = ''
@@ -156,6 +156,9 @@ class MainWindow(QMainWindow):
         self.zData   = []
         self.cropFiles = ''
         self.fname = ('','')
+        self.dbId = ''
+        self.cropDict = dict()
+        self.debugMode = True
         # Action index
         self.index = 0
         # Id of pptk window for embeding procedure
@@ -473,13 +476,16 @@ class MainWindow(QMainWindow):
         self.view.set(phi = np.pi/2, theta = 0)
     
     def browseFiles(self):
+        if self.debugMode:
+            print('browse files')
         self.flagWait = False
         self.dialogLoad.close()
-        print('browse files')
         # Open a dialog box
         self.fname = QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", self.browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
 
     def browseDB(self):
+        if self.debugMode:
+            print('browse database')
         self.flagWait = True
         self.fname = ('','')
         self.dialogLoad.close()
@@ -513,7 +519,7 @@ class MainWindow(QMainWindow):
         self.repaint()
 
         if cloudPath:
-            self.fname = [cloudPath,0]
+            self.fname = [cloudPath, 0]
             self.missionId = cloudPath.split('/')[-1].split('.')[0]
         else:
             self.dialogLoad = QDialog()
@@ -523,7 +529,8 @@ class MainWindow(QMainWindow):
             self.buttonDB = QPushButton("Banco de dados", self.dialogLoad)
             self.buttonDB.move(110,15)
             self.buttonDB.clicked.connect(self.browseDB)
-            self.dialogLoad.setGeometry(600,300,235,50)
+            # self.dialogLoad.setGeometry(600,300,235,50)
+            self.dialogLoad.setFixedSize(235, 50)
             self.dialogLoad.setWindowTitle("Fonte de arquivos")
             self.dialogLoad.exec()
             if self.flagWait:
@@ -543,14 +550,18 @@ class MainWindow(QMainWindow):
         nuvemPcd = self.fname[0]
 
         cropPath = os.path.join(self.pathToTemp, 'crops' + self.missionId)
+        self.cropDict = dict()
         
         if nuvemPcd == '':
             return
         self.nuvemTxt = os.path.join(self.pathToTemp, nuvemPcd.split('/')[-1].split('.')[0]+'.txt')
         if os.path.exists(self.nuvemTxt):
-            print("Cloud " + nuvemPcd.split('/')[-1] + " loaded from cache!")
+            if self.debugMode:
+                print("Cloud " + nuvemPcd.split('/')[-1] + " loaded from cache!")
         else:
-            os.system('extconverter '+nuvemPcd+' -D '+self.pathToTemp)
+            if self.debugMode:
+                print('Creating ' + nuvemPcd + ' txt temporary file')
+            os.system('extconverter '+ nuvemPcd +' -D '+self.pathToTemp)
 
         # Status message
         self.dialogBox.clear()
@@ -584,6 +595,7 @@ class MainWindow(QMainWindow):
         self.counter = -1
 
         # # Disabling buttons for latter usage
+        self.availablePiles = []
         for button in [self.buttonStock1A, self.buttonStock1B, self.buttonStock2A, self.buttonStock2B, self.buttonStock2C, self.buttonStock2D, self.buttonStock3A, self.buttonStock3B, self.buttonSave, self.buttonUndo, self.buttonRedo]:
             button.setStyleSheet("color: #373f49; background: #373f49;")
             button.setEnabled(False)
@@ -593,44 +605,64 @@ class MainWindow(QMainWindow):
         
         self.dialogBox.textCursor().insertText('Carregando crops!\n')
         self.repaint()
-        self.cropFiles = os.popen('ls '+cropPath).read().split('\n')[0:-1]
+        self.cropFiles = os.popen('ls ' + cropPath + ' | grep .pcd').read().split('\n')[0:-1]
         for crop in self.cropFiles:
             cropTxt = os.path.join(cropPath, crop.split('.')[0]+'.txt')
+            cropPcd = os.path.join(cropPath, crop)
             self.pcTemp.append(cropTxt)
             if os.path.exists(cropTxt):
-                print("Crop " + crop + " loaded from cache!")
+                if self.debugMode:
+                    print("Crop " + crop + " loaded from cache!")
             else:
-                os.system('extconverter '+os.path.join(cropPath, crop)+' -D '+cropPath)
+                if self.debugMode:
+                    print('Creating ' + crop + ' txt file')
+                os.system('extconverter '+os.path.join(cropPath, crop) + ' -D ' + cropPath)
             if "_1A.pcd" in crop:
                 self.buttonStock1A.setStyleSheet("color: black; background: #373f49;")
                 self.buttonStock1A.setEnabled(True)
+                self.availablePiles.append('1A')
+                self.cropDict['1A'] = cropPcd
             elif "_1B.pcd" in crop:
                 self.buttonStock1B.setStyleSheet("color: black; background: #373f49;")
                 self.buttonStock1B.setEnabled(True)
+                self.availablePiles.append('1B')
+                self.cropDict['1B'] = cropPcd
             elif "_2A.pcd" in crop:
                 self.buttonStock2A.setStyleSheet("color: black; background: #373f49;")
                 self.buttonStock2A.setEnabled(True)
+                self.availablePiles.append('2A')
+                self.cropDict['2A'] = cropPcd
             elif "_2B.pcd" in crop:
                 self.buttonStock2B.setStyleSheet("color: black; background: #373f49;")
                 self.buttonStock2B.setEnabled(True)
+                self.availablePiles.append('2B')
+                self.cropDict['2B'] = cropPcd
             elif "_2C.pcd" in crop:
                 self.buttonStock2C.setStyleSheet("color: black; background: #373f49;")
                 self.buttonStock2C.setEnabled(True)
+                self.availablePiles.append('2C')
+                self.cropDict['2C'] = cropPcd
             elif "_2D.pcd" in crop:
                 self.buttonStock2D.setStyleSheet("color: black; background: #373f49;")
                 self.buttonStock2D.setEnabled(True)
+                self.availablePiles.append('2D')
+                self.cropDict['2D'] = cropPcd
             elif "_3A.pcd" in crop:
                 self.buttonStock3A.setStyleSheet("color: black; background: #373f49;")
                 self.buttonStock3A.setEnabled(True)
+                self.availablePiles.append('3A')
+                self.cropDict['3A'] = cropPcd
             elif "_3B.pcd" in crop:
                 self.buttonStock3B.setStyleSheet("color: black; background: #373f49;")
                 self.buttonStock3B.setEnabled(True)
+                self.availablePiles.append('3B')
+                self.cropDict['3B'] = cropPcd
         
         ### Ajustar título da janela pra ser compatível com o sub-pilha alvo
         subpile = self.fname[0][-6:][:-4]
         # mission = '0001'
         # subpile = '3B'
-        if subpile in ['1A', '1B', '2A', '2B', '2C', '2D', '3A', '3B']:
+        if subpile in pileNames:
             self.setWindowTitle('PC Selector: Missão ' + self.missionId + ' Pilha ' + subpile)
         else:
             self.setWindowTitle('PC Selector: Missão ' + self.missionId)
@@ -695,15 +727,36 @@ class MainWindow(QMainWindow):
    
     # CLICK: Volume calculation
     def calcClick(self):
+        self.dialogBox.clear()
+        self.dialogBox.textCursor().insertText("Calculando...\n")
+        self.repaint()
         if self.counter == -1:
             np.savetxt(self.pathToCachedPC, self.xyzData)
         volume = os.popen('python3 ' + os.path.join(self.applicationRoot,'mainh.py ') + self.pathToCachedPC).read().split('\n')[0]
         self.dialogBox.textCursor().insertText("Volume total = " + volume + " m³.\n")
         self.repaint()
-        print("Volume total = " + volume + " m³.\n")
+        if self.debugMode:
+            print("Volume total = " + volume + " m³.\n")
+        return volume
 
     # CLICK: Save current point cloud
     def saveClick(self):
+        self.dialogSave = QDialog()
+        self.dialogSave.setWindowTitle("Salvar nuvem em:")
+        self.buttonSaveHD = QPushButton("Disco rígido", self.dialogSave)
+        self.buttonSaveHD.move(10, 15)
+        self.buttonSaveHD.clicked.connect(self.saveHD)
+        self.buttonSaveDB = QPushButton("Banco de dados", self.dialogSave)
+        self.buttonSaveDB.move(110, 15)
+        self.buttonSaveDB.clicked.connect(self.saveDB)
+        self.comboSaveDB = QComboBox(self.dialogSave)
+        self.comboSaveDB.insertItems(0, ['Selecionar pilha'] + self.availablePiles)
+        self.comboSaveDB.move(110, 50)
+        self.dialogSave.setFixedSize(250, 80)
+        self.dialogSave.setWindowTitle("Fonte de arquivos")
+        self.dialogSave.exec()
+
+    def saveHD(self):
         self.dialogBox.textCursor().insertText('Salvando nuvem de pontos...\n')
         self.repaint()
 
@@ -713,23 +766,51 @@ class MainWindow(QMainWindow):
             self.dialogBox.textCursor().insertText('Operação "salvar" cancelada!\n')
             self.repaint()
             return
-        file = open(self.fname[0],'w') ### Transformat em .pcd
+        pcdFile = open(self.fname[0],'w') ### Transformat em .pcd
         text = open(self.pathToCachedPC,'r').read()
-        file.write(text)
-        file.close()
+        pcdFile.write(text)
+        pcdFile.close()
         self.dialogBox.textCursor().insertText('Nuvem de pontos salva em:\n'+self.fname[0]+'\n')
         self.flagModification = False
-
-        ## Save on database
-        # name = self.fname[0].split('/')[-1]
-        # md5hash = os.popen('md5sum '+name).read().split(' ')[0]
-        # headers = {'md5hash':md5hash,'user':'1'}
-        # files = {'file': (name, open(name, 'rb'), 'text/plain')}
-        # r = requests.post('http://localhost:8503/pointCloudData', headers=headers, files=files)
-        # self.flagModification = False
-        # self.dialogBox.textCursor().insertText('Nuvem de pontos salva em:\n'+r.text+'\n')
-
         self.repaint()
+        self.dialogSave.close()
+        
+    def saveDB(self):
+        stockName = self.comboSaveDB.currentText()
+        if self.comboSaveDB.currentIndex() == 0:
+            if self.debugMode:
+                print('Escolha uma pilha')
+            self.choosePileWarning = QMessageBox(QMessageBox.Warning, 'Aviso', 'Selecione uma pilha!', QMessageBox.Ok)
+            self.choosePileWarning.exec_()
+        else:
+            if self.debugMode:
+                print('Salvar pilha ' + stockName)
+            self.dialogBox.textCursor().insertText('Pilha ' + stockName + ' atualizada no banco de dados')
+            self.flagModification = False
+            self.repaint()
+            self.dialogSave.close()
+            ## Update database
+            name   = self.cropDict[stockName]
+            cropDir = os.path.dirname(self.cropDict[stockName])
+            os.system('extconverter ' + self.pathToCachedPC + ' -D ' + cropDir)
+            os.system('cp ' + cropDir + '/selected.pcd ' + name)
+            os.system('cp ' + self.pathToCachedPC + ' ' + name.replace('.pcd','.txt'))
+            volume = float(self.calcClick())
+            md5hash = os.popen('md5sum '+name).read().split(' ')[0]
+            payload = """{"id":%s,"edited_by":0,"stp_volume":%.2f,"md5Hash":"%s"}"""%(self.dbId,volume,md5hash)
+            files = {'jsonData': ('',payload, 'application/json'),'pcdFile': (stockName+'.pcd', open(name, 'rb'), 'application/octet-stream')}
+            r = requests.put('http://localhost:8503/pointCloudData', files=files)
+            if self.debugMode:
+                print(r.text)
+
+            ## Save on database
+            # name = self.fname[0].split('/')[-1]
+            # md5hash = os.popen('md5sum '+name).read().split(' ')[0]
+            # headers = {'md5hash':md5hash,'user':'1'}
+            # files = {'file': (name, open(name, 'rb'), 'text/plain')}
+            # r = requests.post('http://localhost:8503/pointCloudData', headers=headers, files=files)
+            # self.flagModification = False
+            # self.dialogBox.textCursor().insertText('Nuvem de pontos salva em:\n'+r.text+'\n')
 
 
     # CLICK: Return to previous modification state
@@ -829,15 +910,16 @@ def main():
         form.editPCD   = args[indexEdit+1]
         form.loadClick(form.editPCD)
     except:
-        print('Invalid point cloud argument.')
+        if self.debugMode:
+            print('Invalid point cloud argument.')
 
     if form.editPCD:###fname
-        self.missionId = form.fname[0].split('/missao')[1][:4]###fname, will fail, fname=('','')
+        form.missionId = form.fname[0].split('/missao')[1][:4]###fname, will fail, fname=('','')
         subpile = form.fname[0][-6:][:-4]
-        if subpile in ['1A', '1B', '2A', '2B', '2C', '2D', '3A', '3B']:
-            form.setWindowTitle('PC Selector: Missão ' + self.missionId + ' Pilha ' + subpile)
+        if subpile in pileNames:
+            form.setWindowTitle('PC Selector: Missão ' + form.missionId + ' Pilha ' + subpile)
         else:
-            form.setWindowTitle('PC Selector: Missão ' + self.missionId)
+            form.setWindowTitle('PC Selector: Missão ' + form.missionId)
     else:
         form.setWindowTitle('PC Selector')
     #form.setGeometry(100, 100, 600, 500)
@@ -847,8 +929,9 @@ def main():
 
 if __name__ == '__main__':
     # sys.argv.append('--edit /var/tmp/trms/nuvem_2020-09-14T10:31:00_3A.txt')
+    pileNames = ['1A', '1B', '2A', '2B', '2C', '2D', '3A', '3B']
     argv = sys.argv
-    # argv = ['/home/adriano/git/volumecarvao/pcselector.py', '--edit /home/adriano/git/drone-server/files/missao0001/crops/nuvem_2020-09-14T10:31:00_3B.pcd']
+    # argv = ['/home/adriano/git/volumecarvao/pcselector.py', '--edit /home/controle/git/gpar-drone-server/files/missao0001/nuvem_2020-09-14T10:31:00.pcd']
     
     app = QApplication(argv)
     app.setStyle("fusion")
