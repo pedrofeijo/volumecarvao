@@ -40,16 +40,18 @@ class Second(QMainWindow):
         payload = {"responseType":"fieldList", "initDate":"2010-01-01 00:00:00", "endDate":"2100-10-31 23:59:59"}
         dbRequest = requests.get('http://localhost:8503/pointCloudData', params=payload)
         self.dbDatas = json.loads(dbRequest.text)
-        idList      = list()
-        initList    = list()
-        missionList = list()
+        missionIdList = list()
+        idList        = list()
+        initList      = list()
+        missionList   = list()
         self.nRows = len(self.dbDatas)
         for i in range(0, self.nRows):
-            idList.append(self.dbDatas[i]['id'])
+            missionIdList.append(self.dbDatas[i]['mission_id'])
             initList.append(self.dbDatas[i]['flight_init'])
             missionList.append(self.dbDatas[i]['mission'])
+            idList.append(self.dbDatas[i]['id'])
 
-        self.createTable(idList, initList, missionList)
+        self.createTable(missionIdList, initList, missionList, idList)
 
         self.buttonCancel = QPushButton('Cancelar')
         self.buttonSelect = QPushButton('Selecionar')
@@ -71,22 +73,23 @@ class Second(QMainWindow):
         self.mylayout.addWidget(self.dataWidget, 0, 0, 1, 2)
         self.mylayout.addWidget(self.buttonsWidget, 1, 0)
 
-        self.setGeometry(0,0,337,300)
-        self.setMaximumWidth(350)
+        self.setGeometry(0,0,370,400)
+        self.setMaximumWidth(370)
 
-    def createTable(self, idList, initList, missionList):
+    def createTable(self, missionIdList, initList, missionList, idList):
         self.tableWidget = QTableWidget()
         self.tableWidget.setRowCount(self.nRows)
-        self.tableWidget.setColumnCount(3)
+        self.tableWidget.setColumnCount(4)
         self.tableWidget.setSelectionBehavior(QAbstractItemView.SelectRows)
         if self.nRows > 0:
             for i in range(self.nRows-1,-1,-1):
                 date = initList[i].split('-')[2].split('T')[0]+'/'+initList[i].split('-')[1]+'/'+initList[i].split('-')[0] + ' ' + initList[i].split('-')[2].split('T')[1][:-5]
-                self.tableWidget.setItem(self.nRows-i-1, 0, QTableWidgetItem(str(idList[i])))
+                self.tableWidget.setItem(self.nRows-i-1, 0, QTableWidgetItem(str(missionIdList[i])))
                 self.tableWidget.setItem(self.nRows-i-1, 1, QTableWidgetItem(date))
                 self.tableWidget.setItem(self.nRows-i-1, 2, QTableWidgetItem(missionList[i][:-4]))
+                self.tableWidget.setItem(self.nRows-i-1, 3, QTableWidgetItem(str(idList[i])))
                 self.tableWidget.move(10,20)
-        self.tableWidget.setHorizontalHeaderLabels(['id', 'data e hora','missão'])
+        self.tableWidget.setHorizontalHeaderLabels(['#', 'data e hora','pilhas','índice'])
         self.tableWidget.resizeColumnsToContents()
         self.tableWidget.resizeRowsToContents()
 
@@ -98,18 +101,26 @@ class Second(QMainWindow):
         self.close()
 
     def selectAction(self):
-        if self.debugMode:
+        if debugMode:
             print('Select load action')
-        pcdId = self.tableWidget.selectedItems()[0].text()
+        pcdId = self.tableWidget.selectedItems()[3].text()
+        missionId = self.tableWidget.selectedItems()[0].text()
+        lmid = len(missionId)
+        if lmid == 1:
+            missionId = '000' + missionId
+        elif lmid == 2:
+            missionId = '00' + missionId
+        elif lmid == 3:
+            missionId = '0' + missionId
         form.dbId = pcdId
         payload = {"responseType":"pcdFile","id":pcdId,"pcdFile":"raw"}
         r = requests.get('http://localhost:8503/pointCloudData', params=payload)
         headerData = json.dumps(dict(r.headers))
         headerData = json.loads(headerData)
-        filePath = '/var/tmp/trms/crops' + pcdId + '/'
+        filePath = '/var/tmp/trms/crops' + missionId + '/'
         if not os.path.exists(filePath):
             os.mkdir(filePath)
-        rawFileName = os.path.join(filePath, pcdId+'.pcd')
+        rawFileName = os.path.join(filePath, missionId+'.pcd')
         with open(rawFileName, 'wb') as fd:
             for chunk in r.iter_content(chunk_size=128):
                 fd.write(chunk)
@@ -121,7 +132,7 @@ class Second(QMainWindow):
                 r = requests.get('http://localhost:8503/pointCloudData', params=payload)
                 headerData = json.dumps(dict(r.headers))
                 headerData = json.loads(headerData)
-                fileName = os.path.join(filePath, pcdId+'_'+cropId+'.pcd')
+                fileName = os.path.join(filePath, missionId+'_'+cropId+'.pcd')
                 with open(fileName, 'wb') as fd:
                     for chunk in r.iter_content(chunk_size=128):
                         fd.write(chunk)
@@ -158,7 +169,6 @@ class MainWindow(QMainWindow):
         self.fname = ('','')
         self.dbId = ''
         self.cropDict = dict()
-        self.debugMode = True
         # Action index
         self.index = 0
         # Id of pptk window for embeding procedure
@@ -476,7 +486,7 @@ class MainWindow(QMainWindow):
         self.view.set(phi = np.pi/2, theta = 0)
     
     def browseFiles(self):
-        if self.debugMode:
+        if debugMode:
             print('browse files')
         self.flagWait = False
         self.dialogLoad.close()
@@ -484,7 +494,7 @@ class MainWindow(QMainWindow):
         self.fname = QFileDialog.getOpenFileName(self, "Escolher nuvem de pontos", self.browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
 
     def browseDB(self):
-        if self.debugMode:
+        if debugMode:
             print('browse database')
         self.flagWait = True
         self.fname = ('','')
@@ -556,10 +566,10 @@ class MainWindow(QMainWindow):
             return
         self.nuvemTxt = os.path.join(self.pathToTemp, nuvemPcd.split('/')[-1].split('.')[0]+'.txt')
         if os.path.exists(self.nuvemTxt):
-            if self.debugMode:
+            if debugMode:
                 print("Cloud " + nuvemPcd.split('/')[-1] + " loaded from cache!")
         else:
-            if self.debugMode:
+            if debugMode:
                 print('Creating ' + nuvemPcd + ' txt temporary file')
             os.system('extconverter '+ nuvemPcd +' -D '+self.pathToTemp)
 
@@ -611,10 +621,10 @@ class MainWindow(QMainWindow):
             cropPcd = os.path.join(cropPath, crop)
             self.pcTemp.append(cropTxt)
             if os.path.exists(cropTxt):
-                if self.debugMode:
+                if debugMode:
                     print("Crop " + crop + " loaded from cache!")
             else:
-                if self.debugMode:
+                if debugMode:
                     print('Creating ' + crop + ' txt file')
                 os.system('extconverter '+os.path.join(cropPath, crop) + ' -D ' + cropPath)
             if "_1A.pcd" in crop:
@@ -735,7 +745,7 @@ class MainWindow(QMainWindow):
         volume = os.popen('python3 ' + os.path.join(self.applicationRoot,'mainh.py ') + self.pathToCachedPC).read().split('\n')[0]
         self.dialogBox.textCursor().insertText("Volume total = " + volume + " m³.\n")
         self.repaint()
-        if self.debugMode:
+        if debugMode:
             print("Volume total = " + volume + " m³.\n")
         return volume
 
@@ -778,12 +788,12 @@ class MainWindow(QMainWindow):
     def saveDB(self):
         stockName = self.comboSaveDB.currentText()
         if self.comboSaveDB.currentIndex() == 0:
-            if self.debugMode:
+            if debugMode:
                 print('Escolha uma pilha')
             self.choosePileWarning = QMessageBox(QMessageBox.Warning, 'Aviso', 'Selecione uma pilha!', QMessageBox.Ok)
             self.choosePileWarning.exec_()
         else:
-            if self.debugMode:
+            if debugMode:
                 print('Salvar pilha ' + stockName)
             self.dialogBox.textCursor().insertText('Pilha ' + stockName + ' atualizada no banco de dados')
             self.flagModification = False
@@ -800,7 +810,7 @@ class MainWindow(QMainWindow):
             payload = """{"id":%s,"edited_by":0,"stp_volume":%.2f,"md5Hash":"%s"}"""%(self.dbId,volume,md5hash)
             files = {'jsonData': ('',payload, 'application/json'),'pcdFile': (stockName+'.pcd', open(name, 'rb'), 'application/octet-stream')}
             r = requests.put('http://localhost:8503/pointCloudData', files=files)
-            if self.debugMode:
+            if debugMode:
                 print(r.text)
 
             ## Save on database
@@ -910,7 +920,7 @@ def main():
         form.editPCD   = args[indexEdit+1]
         form.loadClick(form.editPCD)
     except:
-        if self.debugMode:
+        if debugMode:
             print('Invalid point cloud argument.')
 
     if form.editPCD:###fname
@@ -928,10 +938,12 @@ def main():
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
+    debugMode = True
     # sys.argv.append('--edit /var/tmp/trms/nuvem_2020-09-14T10:31:00_3A.txt')
     pileNames = ['1A', '1B', '2A', '2B', '2C', '2D', '3A', '3B']
     argv = sys.argv
     # argv = ['/home/adriano/git/volumecarvao/pcselector.py', '--edit /home/controle/git/gpar-drone-server/files/missao0001/nuvem_2020-09-14T10:31:00.pcd']
+    
     
     app = QApplication(argv)
     app.setStyle("fusion")
