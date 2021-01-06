@@ -20,7 +20,7 @@ from   PyQt5 import QtWidgets, QtGui, QtCore
 from   PyQt5.QtWidgets import QMainWindow, QTableWidget, QTableWidgetItem, QApplication, QAbstractItemView, QWidget, QGridLayout, QPushButton, QTextEdit, QMessageBox, QFileDialog, QDialog, QComboBox
 from   descartes import PolygonPatch
 from   PIL import Image
-import time
+from time import sleep
 
 class Second(QMainWindow):
     def __init__(self, parent=None):
@@ -141,6 +141,7 @@ class Second(QMainWindow):
         self.close()
     
     def closeEvent(self, event):
+        form.mywidget.setEnabled(True)
         event.accept()
 
 
@@ -357,7 +358,7 @@ class MainWindow(QMainWindow):
         self.windowcontainer = self.createWindowContainer(self.window, self.mywidget)
         self.windowcontainer.setFocusPolicy(QtCore.Qt.TabFocus)
         # Setting container to layout
-        time.sleep(.3)
+        sleep(.3)
         self.mylayout.addWidget(self.windowcontainer, 0, 1, 4, 5)
         pass
     # FUNCTION: Clear temporary files
@@ -471,19 +472,22 @@ class MainWindow(QMainWindow):
             self.setWindowTitle('PC Selector: Missão ' + self.missionId)
             return False
         else:
-            button.setStyleSheet("color: white; background: darkgreen;")
+            # button.setStyleSheet("color: white; background: darkgreen;")
+            button.setStyleSheet("color: black; background: #9A7D0A;")
             self.setWindowTitle('PC Selector: Missão ' + self.missionId + ' Pilha ' + currentStockSelection)
             self.currentStock = currentStockSelection
             return True
 
     def topClick(self):
-        self.view.set(phi = 0, theta = np.pi/2)
+        # self.view.set(phi = 0, theta = np.pi/2)
+        self.view.set(phi=-(np.pi/2-0.1933), theta=np.pi/2)
 
     def frontClick(self):
-        self.view.set(phi = 0, theta = 0)
+        # self.view.set(phi = 0, theta = 0)
+        self.view.set(phi = np.pi/2-(np.pi/2-0.1933), theta = 0)
 
     def sideClick(self):
-        self.view.set(phi = np.pi/2, theta = 0)
+        self.view.set(phi = -(np.pi/2-0.1933), theta = 0)
     
     def browseFiles(self):
         if debugMode:
@@ -498,7 +502,7 @@ class MainWindow(QMainWindow):
             print('browse database')
         self.flagWait = True
         self.fname = ('','')
-        self.dialogLoad.close()
+        # self.dialogLoad.close()
         self.database.show()
         self.mywidget.setDisabled(True)
         
@@ -532,17 +536,20 @@ class MainWindow(QMainWindow):
             self.fname = [cloudPath, 0]
             self.missionId = cloudPath.split('/')[-1].split('.')[0]
         else:
-            self.dialogLoad = QDialog()
-            self.buttonHD = QPushButton("Disco rígido", self.dialogLoad)
-            self.buttonHD.move(10,15)
-            self.buttonHD.clicked.connect(self.browseFiles)
-            self.buttonDB = QPushButton("Banco de dados", self.dialogLoad)
-            self.buttonDB.move(110,15)
-            self.buttonDB.clicked.connect(self.browseDB)
-            # self.dialogLoad.setGeometry(600,300,235,50)
-            self.dialogLoad.setFixedSize(235, 50)
-            self.dialogLoad.setWindowTitle("Fonte de arquivos")
-            self.dialogLoad.exec()
+            # self.dialogLoad = QDialog()
+            # self.buttonHD = QPushButton("Disco rígido", self.dialogLoad)
+            # self.buttonHD.move(10,15)
+            # self.buttonHD.clicked.connect(self.browseFiles)
+            # self.buttonDB = QPushButton("Banco de dados", self.dialogLoad)
+            # self.buttonDB.move(110,15)
+            # self.buttonDB.clicked.connect(self.browseDB)
+            # # self.dialogLoad.setGeometry(600,300,235,50)
+            # self.dialogLoad.setFixedSize(235, 50)
+            # self.dialogLoad.setWindowTitle("Fonte de arquivos")
+            # self.dialogLoad.exec()
+            
+            self.browseDB()
+
             if self.flagWait:
                 self.dialogBox.clear()
                 self.dialogBox.textCursor().insertText('Escolhendo nuvem do banco de dados...\n')
@@ -751,39 +758,78 @@ class MainWindow(QMainWindow):
 
     # CLICK: Save current point cloud
     def saveClick(self):
-        self.dialogSave = QDialog()
-        self.dialogSave.setWindowTitle("Salvar nuvem em:")
-        self.buttonSaveHD = QPushButton("Disco rígido", self.dialogSave)
-        self.buttonSaveHD.move(10, 15)
-        self.buttonSaveHD.clicked.connect(self.saveHD)
-        self.buttonSaveDB = QPushButton("Banco de dados", self.dialogSave)
-        self.buttonSaveDB.move(110, 15)
-        self.buttonSaveDB.clicked.connect(self.saveDB)
-        self.comboSaveDB = QComboBox(self.dialogSave)
-        self.comboSaveDB.insertItems(0, ['Selecionar pilha'] + self.availablePiles)
-        self.comboSaveDB.move(110, 50)
-        self.dialogSave.setFixedSize(250, 80)
-        self.dialogSave.setWindowTitle("Fonte de arquivos")
-        self.dialogSave.exec()
+        # self.dialogSave = QDialog()
+        # self.dialogSave.setWindowTitle("Salvar nuvem em:")
+        # self.buttonSaveHD = QPushButton("Disco rígido", self.dialogSave)
+        # self.buttonSaveHD.move(10, 15)
+        # self.buttonSaveHD.clicked.connect(self.saveHD)
+        # self.buttonSaveDB = QPushButton("Banco de dados", self.dialogSave)
+        # self.buttonSaveDB.move(110, 15)
+        # self.buttonSaveDB.clicked.connect(self.saveDB)
+        # self.comboSaveDB = QComboBox(self.dialogSave)
+        # self.comboSaveDB.insertItems(0, ['Selecionar pilha'] + self.availablePiles)
+        # self.comboSaveDB.move(110, 50)
+        # self.dialogSave.setFixedSize(250, 80)
+        # self.dialogSave.setWindowTitle("Fonte de arquivos")
+        # self.dialogSave.exec()
+        if not reviewMode:
+            self.saveDB()
+        else:
+            self.saveHD()
 
     def saveHD(self):
-        self.dialogBox.textCursor().insertText('Salvando nuvem de pontos...\n')
-        self.repaint()
-
-        ## Save on HD
-        self.fname = QFileDialog.getSaveFileName(self, 'Salvar nuvem de pontos', self.browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
-        if self.fname == ('',''):
-            self.dialogBox.textCursor().insertText('Operação "salvar" cancelada!\n')
-            self.repaint()
-            return
-        pcdFile = open(self.fname[0],'w') ### Transformat em .pcd
+        # self.dialogBox.textCursor().insertText('Salvando nuvem de pontos...\n')
+        # self.repaint()
+        pathPcd = '/var/tmp/trms/crops'+self.missionId+'/'+self.missionId+'_'+self.currentStock+'.pcd'
+        pathTxt = '/var/tmp/trms/crops'+self.missionId+'/'+self.missionId+'_'+self.currentStock+'.txt'
+        pathPng = '/var/tmp/trms/crops'+self.missionId+'/'+self.missionId+'_'+self.currentStock+'.png'
+        txtFile = open(pathTxt,'w')
         text = open(self.pathToCachedPC,'r').read()
-        pcdFile.write(text)
-        pcdFile.close()
-        self.dialogBox.textCursor().insertText('Nuvem de pontos salva em:\n'+self.fname[0]+'\n')
+        txtFile.write(text)
+        txtFile.close()
+        os.system('extconverter ' + pathTxt + ' -D /var/tmp/trms/crops' + self.missionId + '/')
+        xyz = np.loadtxt(pathTxt, delimiter = ' ')
+        xyz = xyz[:, :3]
+        z   = xyz[:, 2]
+        viewer = pptk.viewer(xyz, z)
+        viewer.set(phi=-(np.pi/2-0.1933), theta=np.pi/2)
+        if self.currentStock in ['1A', '3A']:
+            viewer.w_Resize()
+            viewer.set(r = 75)
+        elif self.currentStock in ['1B', '3B']:
+            viewer.w_Resize()
+            viewer.set(r = 90)
+        else:
+            viewer.w_resize()
+            viewer.set(r = 150)
+        bxplt = plt.boxplot(z)
+        m1 = bxplt['whiskers'][0]._y[0] # Minimum value of the minimum range
+        M2 = bxplt['whiskers'][1]._y[1] # Maximum value of the maximum range
+        viewer.color_map('jet',scale=[m1,M2])
+        viewer.set(show_info = False)
+        sleep(1.5)
+        viewer.capture(pathPng)
+        sleep(0.5)
+        viewer.close()
+        # self.view.w_Resize
+        # sleep(0.8)
+        # self.view.capture(pathPng)
+        # sleep(0.8)
+
+        # ## Save on HD
+        # self.fname = QFileDialog.getSaveFileName(self, 'Salvar nuvem de pontos', self.browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
+        # if self.fname == ('',''):
+        #     self.dialogBox.textCursor().insertText('Operação "salvar" cancelada!\n')
+        #     self.repaint()
+        #     return
+        # pcdFile = open(self.fname[0],'w') ### Transformat em .pcd
+        # text = open(self.pathToCachedPC,'r').read()
+        # pcdFile.write(text)
+        # pcdFile.close()
+        self.dialogBox.textCursor().insertText('Nuvem de pontos salva!\n')
         self.flagModification = False
         self.repaint()
-        self.dialogSave.close()
+        # self.dialogSave.close()
         
     def saveDB(self):
         stockName = self.comboSaveDB.currentText()
@@ -914,18 +960,36 @@ class MainWindow(QMainWindow):
             event.accept()
 
 def main():
-    try:
-        args      = argv[1].split()
-        indexEdit = args.index('--edit')
-        form.editPCD   = args[indexEdit+1]
-        form.loadClick(form.editPCD)
-    except:
+    global reviewMode
+    if len(argv) > 1:
+      try:
+          args      = argv[1].split()
+          print(args)
+          indexEdit = args.index('--edit')
+          print(args[indexEdit+1])
+          indexId   = args.index('--id')
+          print(args[indexId+1])
+          indexMission  = args.index('--mission')
+          print(args[indexMission+1])
+          
+          form.editPCD = args[indexEdit+1]
+          subpile      = args[indexId+1]
+          getMission   = args[indexMission+1]
+          form.loadClick(form.editPCD)
+          reviewMode   = True
+          if debugMode:
+              print('Review mode.')
+      except:
+          if debugMode:
+              print('Invalid point cloud argument.')
+    else:
         if debugMode:
-            print('Invalid point cloud argument.')
+            print('Edit database mode.')
 
-    if form.editPCD:###fname
-        form.missionId = form.fname[0].split('/missao')[1][:4]###fname, will fail, fname=('','')
-        subpile = form.fname[0][-6:][:-4]
+
+    if reviewMode:###fname
+        form.missionId = getMission
+        form.currentStock = subpile
         if subpile in pileNames:
             form.setWindowTitle('PC Selector: Missão ' + form.missionId + ' Pilha ' + subpile)
         else:
@@ -938,12 +1002,14 @@ def main():
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
-    debugMode = True
+    debugMode  = True
+    reviewMode = False
     # sys.argv.append('--edit /var/tmp/trms/nuvem_2020-09-14T10:31:00_3A.txt')
     pileNames = ['1A', '1B', '2A', '2B', '2C', '2D', '3A', '3B']
     argv = sys.argv
-    # argv = ['/home/adriano/git/volumecarvao/pcselector.py', '--edit /home/controle/git/gpar-drone-server/files/missao0001/nuvem_2020-09-14T10:31:00.pcd']
+    print(argv)
     
+    # argv = ['/home/adriano/git/volumecarvao/pcselector.py', '--edit /home/adriano/git/drone-server/files/missao0003/nuvem_2020-12-08T11:03:27_voxel.pcd --id 3B --mission 0003']
     
     app = QApplication(argv)
     app.setStyle("fusion")
