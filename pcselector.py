@@ -28,6 +28,8 @@ class Second(QMainWindow):
 
         self.mywidget = QWidget()
 
+        self.setWindowTitle('Banco de dados')
+
         self.dataWidget    = QWidget()
         self.buttonsWidget = QWidget()
 
@@ -97,7 +99,7 @@ class Second(QMainWindow):
         form.dialogBox.clear()
         form.dialogBox.textCursor().insertText('Nenhuma nuvem escolhida!\n')
         form.repaint()
-        form.mywidget.setEnabled(True)
+        form.mywidget.setDisabled(False)
         self.close()
 
     def selectAction(self):
@@ -141,7 +143,7 @@ class Second(QMainWindow):
         self.close()
     
     def closeEvent(self, event):
-        form.mywidget.setEnabled(True)
+        form.mywidget.setDisabled(False)
         event.accept()
 
 
@@ -197,9 +199,9 @@ class MainWindow(QMainWindow):
         # Select 3 elements from randIdVec at random as ID
         self.randID = random.choice(randIdVec)+random.choice(randIdVec)+random.choice(randIdVec)
 
-        self.stockWidget   = QWidget()
-        self.buttonsWidget = QWidget()
-        self.viewWidget    = QWidget()
+        self.stockWidget   = QWidget(self.mywidget)
+        self.buttonsWidget = QWidget(self.mywidget)
+        self.viewWidget    = QWidget(self.mywidget)
 
         self.editPCD = ''
 
@@ -469,12 +471,12 @@ class MainWindow(QMainWindow):
             self.currentStock = '0'
             self.loadPointCloud(self.pcTemp[0])
             button.setStyleSheet("color: black; background: #373f49;")
-            self.setWindowTitle('PC Selector: Missão ' + self.missionId)
+            self.setWindowTitle('Editor de Nuvem de Pontos: Missão ' + self.missionId)
             return False
         else:
             # button.setStyleSheet("color: white; background: darkgreen;")
             button.setStyleSheet("color: black; background: #9A7D0A;")
-            self.setWindowTitle('PC Selector: Missão ' + self.missionId + ' Pilha ' + currentStockSelection)
+            self.setWindowTitle('Editor de Nuvem de Pontos: Missão ' + self.missionId + ' Pilha ' + currentStockSelection)
             self.currentStock = currentStockSelection
             return True
 
@@ -571,18 +573,18 @@ class MainWindow(QMainWindow):
         
         if nuvemPcd == '':
             return
-        self.nuvemTxt = os.path.join(self.pathToTemp, nuvemPcd.split('/')[-1].split('.')[0]+'.txt')
+        self.nuvemTxt = os.path.join(cropPath, nuvemPcd.split('/')[-1].split('.')[0]+'.txt')
         if os.path.exists(self.nuvemTxt):
             if debugMode:
                 print("Cloud " + nuvemPcd.split('/')[-1] + " loaded from cache!")
         else:
             if debugMode:
                 print('Creating ' + nuvemPcd + ' txt temporary file')
-            os.system('extconverter '+ nuvemPcd +' -D '+self.pathToTemp)
+            os.system('extconverter '+ nuvemPcd +' -D '+cropPath)
 
         # Status message
         self.dialogBox.clear()
-        self.dialogBox.textCursor().insertText('Arquivo: ' + nuvemPcd + '.\n')
+        self.dialogBox.textCursor().insertText('Nuvem carregada.\n')
         self.repaint()
 
         # Try to load the txt point cloud into a numpy float matrix.
@@ -620,8 +622,6 @@ class MainWindow(QMainWindow):
         if not os.path.exists(cropPath):
             os.mkdir(cropPath)
         
-        self.dialogBox.textCursor().insertText('Carregando crops!\n')
-        self.repaint()
         self.cropFiles = os.popen('ls ' + cropPath + ' | grep .pcd').read().split('\n')[0:-1]
         for crop in self.cropFiles:
             cropTxt = os.path.join(cropPath, crop.split('.')[0]+'.txt')
@@ -680,9 +680,9 @@ class MainWindow(QMainWindow):
         # mission = '0001'
         # subpile = '3B'
         if subpile in pileNames:
-            self.setWindowTitle('PC Selector: Missão ' + self.missionId + ' Pilha ' + subpile)
+            self.setWindowTitle('Editor de Nuvem de Pontos: Missão ' + self.missionId + ' Pilha ' + subpile)
         else:
-            self.setWindowTitle('PC Selector: Missão ' + self.missionId)
+            self.setWindowTitle('Editor de Nuvem de Pontos: Missão ' + self.missionId)
             
         self.buttonConfirm.setStyleSheet("color: black; background: #373f49;")
         self.buttonVolume.setStyleSheet("color: black; background: #373f49;")
@@ -746,40 +746,37 @@ class MainWindow(QMainWindow):
     def calcClick(self):
         self.dialogBox.clear()
         self.dialogBox.textCursor().insertText("Calculando...\n")
+        self.mywidget.setDisabled(True)
         self.repaint()
         if self.counter == -1:
             np.savetxt(self.pathToCachedPC, self.xyzData)
         volume = os.popen('python3 ' + os.path.join(self.applicationRoot,'mainh.py ') + self.pathToCachedPC).read().split('\n')[0]
         self.dialogBox.textCursor().insertText("Volume total = " + volume + " m³.\n")
         self.repaint()
+        self.mywidget.setDisabled(False)
         if debugMode:
             print("Volume total = " + volume + " m³.\n")
         return volume
 
     # CLICK: Save current point cloud
     def saveClick(self):
-        # self.dialogSave = QDialog()
-        # self.dialogSave.setWindowTitle("Salvar nuvem em:")
-        # self.buttonSaveHD = QPushButton("Disco rígido", self.dialogSave)
-        # self.buttonSaveHD.move(10, 15)
-        # self.buttonSaveHD.clicked.connect(self.saveHD)
-        # self.buttonSaveDB = QPushButton("Banco de dados", self.dialogSave)
-        # self.buttonSaveDB.move(110, 15)
-        # self.buttonSaveDB.clicked.connect(self.saveDB)
-        # self.comboSaveDB = QComboBox(self.dialogSave)
-        # self.comboSaveDB.insertItems(0, ['Selecionar pilha'] + self.availablePiles)
-        # self.comboSaveDB.move(110, 50)
-        # self.dialogSave.setFixedSize(250, 80)
-        # self.dialogSave.setWindowTitle("Fonte de arquivos")
-        # self.dialogSave.exec()
         if not reviewMode:
-            self.saveDB()
+            self.dialogSave = QDialog()
+            self.buttonSaveDB = QPushButton("Salvar no banco de dados", self.dialogSave)
+            self.buttonSaveDB.move(10, 15)
+            self.buttonSaveDB.clicked.connect(self.saveDB)
+            self.comboSaveDB = QComboBox(self.dialogSave)
+            self.comboSaveDB.insertItems(0, ['Selecionar pilha'] + self.availablePiles)
+            self.comboSaveDB.move(10, 50)
+            self.dialogSave.setFixedSize(200, 80)
+            self.dialogSave.setWindowTitle("Escolher nuvem alvo")
+            self.dialogSave.exec()
         else:
             self.saveHD()
 
     def saveHD(self):
-        # self.dialogBox.textCursor().insertText('Salvando nuvem de pontos...\n')
-        # self.repaint()
+        self.dialogBox.textCursor().insertText('Salvando nuvem de pontos...\n')
+        self.repaint()
         pathPcd = '/var/tmp/trms/crops'+self.missionId+'/'+self.missionId+'_'+self.currentStock+'.pcd'
         pathTxt = '/var/tmp/trms/crops'+self.missionId+'/'+self.missionId+'_'+self.currentStock+'.txt'
         pathPng = '/var/tmp/trms/crops'+self.missionId+'/'+self.missionId+'_'+self.currentStock+'.png'
@@ -788,6 +785,7 @@ class MainWindow(QMainWindow):
         txtFile.write(text)
         txtFile.close()
         os.system('extconverter ' + pathTxt + ' -D /var/tmp/trms/crops' + self.missionId + '/')
+
         xyz = np.loadtxt(pathTxt, delimiter = ' ')
         xyz = xyz[:, :3]
         z   = xyz[:, 2]
@@ -811,25 +809,17 @@ class MainWindow(QMainWindow):
         viewer.capture(pathPng)
         sleep(0.5)
         viewer.close()
-        # self.view.w_Resize
-        # sleep(0.8)
-        # self.view.capture(pathPng)
-        # sleep(0.8)
-
-        # ## Save on HD
-        # self.fname = QFileDialog.getSaveFileName(self, 'Salvar nuvem de pontos', self.browserRoot, "Arquivos de nuvem de pontos (*.pcd)")
-        # if self.fname == ('',''):
-        #     self.dialogBox.textCursor().insertText('Operação "salvar" cancelada!\n')
-        #     self.repaint()
-        #     return
-        # pcdFile = open(self.fname[0],'w') ### Transformat em .pcd
-        # text = open(self.pathToCachedPC,'r').read()
-        # pcdFile.write(text)
-        # pcdFile.close()
-        self.dialogBox.textCursor().insertText('Nuvem de pontos salva!\n')
+        volume = float(self.calcClick())
+        modificationFilePath = os.path.join('/var/tmp/trms/crops'+self.missionId,'changes')
+        changes = open(modificationFilePath,'w')
+        changes.write(self.currentStock +' '+ str(volume))
+        changes.close()
+        if reviewMode:
+            self.dialogBox.textCursor().insertText('Nuvem de pontos revisada!\n')
+        else:
+            self.dialogBox.textCursor().insertText('Nuvem de pontos salva!\n')
         self.flagModification = False
         self.repaint()
-        # self.dialogSave.close()
         
     def saveDB(self):
         stockName = self.comboSaveDB.currentText()
@@ -986,16 +976,18 @@ def main():
         if debugMode:
             print('Edit database mode.')
 
-
     if reviewMode:###fname
+        form.buttonLoad.setEnabled(False)
+        form.buttonLoad.setStyleSheet("color: #373f49; background: #373f49;")
         form.missionId = getMission
         form.currentStock = subpile
+        form.buttonSave.setText('Finalizar revisão')
         if subpile in pileNames:
-            form.setWindowTitle('PC Selector: Missão ' + form.missionId + ' Pilha ' + subpile)
+            form.setWindowTitle('Editor de Nuvem de Pontos: Missão ' + form.missionId + ' Pilha ' + subpile)
         else:
-            form.setWindowTitle('PC Selector: Missão ' + form.missionId)
+            form.setWindowTitle('Editor de Nuvem de Pontos: Missão ' + form.missionId)
     else:
-        form.setWindowTitle('PC Selector')
+        form.setWindowTitle('Editor de Nuvem de Pontos')
     #form.setGeometry(100, 100, 600, 500)
     form.show()
 
@@ -1009,7 +1001,7 @@ if __name__ == '__main__':
     argv = sys.argv
     print(argv)
     
-    # argv = ['/home/adriano/git/volumecarvao/pcselector.py', '--edit /home/adriano/git/drone-server/files/missao0003/nuvem_2020-12-08T11:03:27_voxel.pcd --id 3B --mission 0003']
+    # argv = ['/home/adriano/git/volumecarvao/pcselector.py', '--edit /var/tmp/trms/crop0003/0003.pcd --id 3B --mission 0003']
     
     app = QApplication(argv)
     app.setStyle("fusion")
