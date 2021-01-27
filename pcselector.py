@@ -164,7 +164,7 @@ class MainWindow(QMainWindow):
         self.view = ''
         self.counter = -1
         self.nuvemTxt = ''
-        self.database = Second(self)
+        # self.database = Second(self)
         self.pcTemp = []
         self.xyzData = []
         self.zData   = []
@@ -192,12 +192,21 @@ class MainWindow(QMainWindow):
         # Register for file currently open
         if not os.path.exists(self.pathToTemp):
             os.mkdir(self.pathToTemp)
-        # Path to cached point cloud
-        self.pathToCachedPC = self.pathToTemp + 'selected.txt'
         # Random vector to create program ID
         randIdVec = string.ascii_letters+'0123456789'
         # Select 3 elements from randIdVec at random as ID
         self.randID = random.choice(randIdVec)+random.choice(randIdVec)+random.choice(randIdVec)
+        # Path to cache folder
+        self.pathToCache    = os.path.join(self.pathToTemp, self.randID)
+        while os.path.exists(self.pathToCache):
+          self.randID = random.choice(randIdVec)+random.choice(randIdVec)+random.choice(randIdVec)
+          # Path to cache folder
+          self.pathToCache    = os.path.join(self.pathToTemp, self.randID)
+        os.mkdir(self.pathToCache)
+
+
+        # Path to cached point cloud
+        self.pathToCachedPC = os.path.join(self.pathToCache, 'selected.txt')
 
         self.stockWidget   = QWidget(self.mywidget)
         self.buttonsWidget = QWidget(self.mywidget)
@@ -366,6 +375,7 @@ class MainWindow(QMainWindow):
     # FUNCTION: Clear temporary files
     def clearTempFiles(self):
         os.system('kill -9 ' + self.winPID)
+        
             
     def stock1AClick(self):
         if self.currentStockManager(self.buttonStock1A, '1A'):
@@ -432,6 +442,7 @@ class MainWindow(QMainWindow):
             self.loadPointCloud(self.nuvemTxt)
     
     def currentStockManager(self, button, currentStockSelection):
+        self.dialogBox.clear()
         for butt in [self.buttonStock1A, self.buttonStock1B, self.buttonStock2A, self.buttonStock2B, self.buttonStock2C, self.buttonStock2D, self.buttonStock3A, self.buttonStock3B]:
             if butt.isEnabled():
                 butt.setStyleSheet("color: black; background: #373f49;")
@@ -466,6 +477,7 @@ class MainWindow(QMainWindow):
                 self.buttonRedo.setEnabled(False)
                 self.buttonSave.setStyleSheet("color: #373f49; background: #373f49;")
                 self.buttonSave.setEnabled(False)
+                os.popen('find ' + self.pathToCache + ' ! -name "selected.txt" -type f -exec rm -f {} +')
                 
         if currentStockSelection == self.currentStock:
             self.currentStock = '0'
@@ -505,6 +517,7 @@ class MainWindow(QMainWindow):
         self.flagWait = True
         self.fname = ('','')
         # self.dialogLoad.close()
+        self.database = Second(self)
         self.database.show()
         self.mywidget.setDisabled(True)
         
@@ -725,7 +738,8 @@ class MainWindow(QMainWindow):
 
         # Save current cloud in cache
         np.savetxt(self.pathToCachedPC, self.xyzData)
-        np.savetxt(self.pathToTemp+self.randID+str(self.counter),self.xyzData)
+        currentPC = os.path.join(self.pathToCache,self.randID+str(self.counter))
+        np.savetxt(currentPC,self.xyzData)
 
         # Set modification flags
         self.flagModification = True
@@ -738,6 +752,7 @@ class MainWindow(QMainWindow):
         self.buttonUndo.setEnabled(True)
 
         # Status message
+        self.dialogBox.clear()
         self.dialogBox.textCursor().insertText(str(nSel)+' pontos selecionados.\n')
         self.repaint()
 
@@ -775,6 +790,7 @@ class MainWindow(QMainWindow):
             self.saveHD()
 
     def saveHD(self):
+        self.dialogBox.clear()
         self.dialogBox.textCursor().insertText('Salvando nuvem de pontos...\n')
         self.repaint()
         pathPcd = '/var/tmp/trms/crops'+self.missionId+'/'+self.missionId+'_'+self.currentStock+'.pcd'
@@ -815,8 +831,10 @@ class MainWindow(QMainWindow):
         changes.write(self.currentStock +' '+ str(volume))
         changes.close()
         if reviewMode:
+            self.dialogBox.clear()
             self.dialogBox.textCursor().insertText('Nuvem de pontos revisada!\n')
         else:
+            self.dialogBox.clear()
             self.dialogBox.textCursor().insertText('Nuvem de pontos salva!\n')
         self.flagModification = False
         self.repaint()
@@ -831,6 +849,7 @@ class MainWindow(QMainWindow):
         else:
             if debugMode:
                 print('Salvar pilha ' + stockName)
+            self.dialogBox.clear()
             self.dialogBox.textCursor().insertText('Pilha ' + stockName + ' atualizada no banco de dados')
             self.flagModification = False
             self.repaint()
@@ -863,6 +882,8 @@ class MainWindow(QMainWindow):
     def undoClick(self):
         # Manage action history
         self.historyAfter.insert(0, self.historyBefore.pop())
+        self.dialogBox.clear()
+        self.dialogBox.textCursor().insertText('Desfazer')
         if not self.historyBefore:
             self.index = -1
             nuvem = self.nuvemTxt###
@@ -870,7 +891,8 @@ class MainWindow(QMainWindow):
             self.buttonUndo.setEnabled(False)
         else:
             self.index = self.historyBefore[-1]
-            nuvem = self.pathToTemp+self.randID+str(self.index)
+            # nuvem = self.pathToTemp+self.randID+str(self.index)
+            nuvem = os.path.join(self.pathToCache,self.randID+str(self.index))
         try:
             self.xyzData = np.loadtxt(nuvem, delimiter= ' ')
         except:
@@ -893,9 +915,12 @@ class MainWindow(QMainWindow):
 
     # CLICK: Return to later modification state after Undo
     def redoClick(self):
+        self.dialogBox.clear()
+        self.dialogBox.textCursor().insertText('Refazer')
         self.historyBefore.append(self.historyAfter.pop(0))
         self.index = self.historyBefore[-1]
-        nuvem = self.pathToTemp+self.randID+str(self.index)
+        # nuvem = self.pathToTemp+self.randID+str(self.index)
+        nuvem = os.path.join(self.pathToCache, self.randID+str(self.index))
         try:
             self.xyzData = np.loadtxt(nuvem, delimiter= ' ')
         except:
