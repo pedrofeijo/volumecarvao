@@ -186,7 +186,7 @@ class MainWindow(QMainWindow):
         # Path to main directory
         self.applicationRoot  = os.path.dirname(os.path.abspath(__file__)) + '/'
         # Browser root
-        self.browserRoot = '/home/adriano/git/drone-server/files/'
+        self.browserRoot = '/home/'
         # Path to temporary folder
         self.pathToTemp = '/var/tmp/trms/'
         # Register for file currently open
