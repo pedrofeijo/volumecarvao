@@ -979,13 +979,15 @@ def main():
     if len(argv) > 1:
       try:
           args      = argv[1].split()
-          print(args)
           indexEdit = args.index('--edit')
-          print(args[indexEdit+1])
+          if debugMode:
+              print(args[indexEdit+1])
           indexId   = args.index('--id')
-          print(args[indexId+1])
+          if debugMode:
+              print(args[indexId+1])
           indexMission  = args.index('--mission')
-          print(args[indexMission+1])
+          if debugMode:
+              print(args[indexMission+1])
           
           form.editPCD = args[indexEdit+1]
           subpile      = args[indexId+1]
@@ -1019,12 +1021,13 @@ def main():
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
-    debugMode  = True
+    debugMode  = False
     reviewMode = False
     # sys.argv.append('--edit /var/tmp/trms/nuvem_2020-09-14T10:31:00_3A.txt')
     pileNames = ['1A', '1B', '2A', '2B', '2C', '2D', '3A', '3B']
     argv = sys.argv
-    print(argv)
+    if debugMode:
+        print(argv)
     
     # argv = ['/home/adriano/git/volumecarvao/pcselector.py', '--edit /var/tmp/trms/crop0003/0003.pcd --id 3B --mission 0003']
     
