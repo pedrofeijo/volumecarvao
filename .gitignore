@@ -1,6 +1,2 @@
 .env/*
 *.vscode
-.selected.txt
-.selecao_teste/*
-*.txt
-*.js
