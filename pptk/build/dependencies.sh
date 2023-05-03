@@ -4,4 +4,4 @@ apt install -y libeigen3-dev
 apt install -y patchelf
 apt install -y python3-pip
 apt install -y cmake
-pip3 install numpy
+#pip3 install numpy

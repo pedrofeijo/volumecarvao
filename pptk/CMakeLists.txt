@@ -5,14 +5,16 @@ set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_MODULE_PATH
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_CURRENT_SOURCE_DIR})
 
-set(Numpy_INCLUDE_DIR /usr/local/lib/python3.8/dist-packages/numpy/core/include/numpy/ CACHE STRING "" FORCE)
+set(Numpy_INCLUDE_DIR /home/adriano/git/volumecarvao/.volumecarvao/lib/python3.8/site-packages/numpy/core/include/numpy/ CACHE STRING "" FORCE)
+set(PYTHON_INCLUDE_DIR /usr/include/python3.8 CACHE STRING "" FORCE)
+#PYTHON_LIBRARY
+set(Eigen_INCLUDE_DIR /usr/include/eigen3 CACHE STRING "" FORCE)
 set(TBB_INCLUDE_DIR /usr/include/tbb CACHE STRING "" FORCE)
 set(TBB_tbb_LIBRARY /usr/lib/x86_64-linux-gnu/libtbb.so CACHE STRING "" FORCE)
 set(TBB_tbb_RUNTIME /usr/lib/x86_64-linux-gnu/libtbb.so CACHE STRING "" FORCE)
 set(TBB_tbbmalloc_LIBRARY /usr/lib/x86_64-linux-gnu/libtbbmalloc.so CACHE STRING "" FORCE)
 set(TBB_tbbmalloc_RUNTIME /usr/lib/x86_64-linux-gnu/libtbbmalloc.so CACHE STRING "" FORCE)
-set(Eigen_INCLUDE_DIR /usr/include/eigen3 CACHE STRING "" FORCE)
-set(PYTHON_INCLUDE_DIR /usr/include/python3.8 CACHE STRING "" FORCE)
+#Qt5_DIR
 
 find_package(Numpy REQUIRED)
 find_package(PythonLibs 3.8 REQUIRED)
