@@ -774,7 +774,7 @@ class MainWindow(QMainWindow):
         crop_path = os.path.join(self.path_to_temp, "crops" + self.mission_id)
         if not os.path.exists(crop_path):
             os.mkdir(crop_path)
-            
+
         self.crop_dict = {}
 
         if nuvem_pcd == "":
