@@ -15,7 +15,7 @@ PyQt5==5.14.2
 PyQt5-sip==12.7.2
 python-dateutil==2.8.1
 pytz==2019.3
-scipy==1.4.1
+scipy==1.10.0
 Shapely==1.7.0
 six==1.14.0
 xlib==0.21
